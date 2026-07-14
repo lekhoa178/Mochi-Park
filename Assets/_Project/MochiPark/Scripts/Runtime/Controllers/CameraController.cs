@@ -6,10 +6,11 @@ namespace MochiPark.Runtime.Views
 {
     public sealed class CameraController : MonoBehaviour
     {
-        private const float CameraBackingDistance = 200f;
+        private const float PerspectiveFieldOfView = 15f;
+        private const float CameraClipPlanePadding = 1f;
         // x = top, y = bottom, z = left, w = right.
-        private static readonly Vector4 EditCameraBoundaryPadding = new Vector4(5f, 3f, 3f, 3f);
-        private static readonly Vector4 GameplayCameraBoundaryPadding = new Vector4(1f, 1f, 3f, 3f);
+        private static readonly Vector4 EditCameraBoundaryPadding = new Vector4(4f, 3f, 3f, 3f);
+        private static readonly Vector4 GameplayCameraBoundaryPadding = new Vector4(0, 2f, 3f, 3f);
         private const float NearClipPlane = 3f;
         private const float FarClipPlane = 1000f;
         private const float ParkOpenTweenDuration = 0.8f;
@@ -17,6 +18,8 @@ namespace MochiPark.Runtime.Views
         private static readonly Vector3 ParkOpenCameraEuler = new Vector3(30f, 45f, 0f);
 
         private Camera mainCamera;
+
+        public bool IsTweening { get; private set; }
 
         public void Initialize()
         {
@@ -30,6 +33,7 @@ namespace MochiPark.Runtime.Views
 
             mainCamera.nearClipPlane = NearClipPlane;
             mainCamera.farClipPlane = FarClipPlane;
+            ConfigurePerspectiveProjection();
         }
 
         public void FrameBoard(RuntimeBoardState board)
@@ -39,11 +43,10 @@ namespace MochiPark.Runtime.Views
                 Initialize();
             }
 
-            mainCamera.orthographic = true;
-            BuildEditView(board, out Vector3 targetPosition, out Quaternion targetRotation, out float targetSize);
+            ConfigurePerspectiveProjection();
+            BuildEditView(board, out Vector3 targetPosition, out Quaternion targetRotation);
             mainCamera.transform.position = targetPosition;
             mainCamera.transform.rotation = targetRotation;
-            mainCamera.orthographicSize = targetSize;
         }
 
         public void FrameParkOpenView(RuntimeBoardState board)
@@ -58,12 +61,11 @@ namespace MochiPark.Runtime.Views
                 return;
             }
 
-            mainCamera.orthographic = true;
+            ConfigurePerspectiveProjection();
             Quaternion targetRotation = Quaternion.Euler(ParkOpenCameraEuler);
-            BuildBoardView(board, targetRotation, GameplayCameraBoundaryPadding, out Vector3 targetViewCenter, out float targetSize);
-            mainCamera.transform.position = AddOrthographicBacking(targetViewCenter, targetRotation);
+            BuildBoardView(board, targetRotation, GameplayCameraBoundaryPadding, out Vector3 targetViewCenter, out float targetDistance);
+            mainCamera.transform.position = AddPerspectiveBacking(targetViewCenter, targetRotation, targetDistance);
             mainCamera.transform.rotation = targetRotation;
-            mainCamera.orthographicSize = targetSize;
         }
 
         public IEnumerator TweenToParkOpenView(RuntimeBoardState board)
@@ -88,27 +90,36 @@ namespace MochiPark.Runtime.Views
                 yield break;
             }
 
-            BuildBoardView(board, targetRotation, padding, out Vector3 targetViewCenter, out float targetSize);
-            Quaternion startRotation = mainCamera.transform.rotation;
-            float startSize = mainCamera.orthographicSize;
-
-            float elapsed = 0f;
-            while (elapsed < ParkOpenTweenDuration)
+            IsTweening = true;
+            try
             {
-                elapsed += Time.unscaledDeltaTime;
-                float t = Mathf.Clamp01(elapsed / ParkOpenTweenDuration);
-                float eased = Mathf.SmoothStep(0f, 1f, t);
+                ConfigurePerspectiveProjection();
+                BuildBoardView(board, targetRotation, padding, out Vector3 targetViewCenter, out float targetDistance);
+                Quaternion startRotation = mainCamera.transform.rotation;
+                float startDistance = GetCurrentViewDistance(mainCamera, targetViewCenter, startRotation, targetDistance);
 
-                Quaternion rotation = Quaternion.Slerp(startRotation, targetRotation, eased);
-                mainCamera.transform.position = AddOrthographicBacking(targetViewCenter, rotation);
-                mainCamera.transform.rotation = rotation;
-                mainCamera.orthographicSize = Mathf.Lerp(startSize, targetSize, eased);
-                yield return null;
+                float elapsed = 0f;
+                while (elapsed < ParkOpenTweenDuration)
+                {
+                    elapsed += Time.unscaledDeltaTime;
+                    float t = Mathf.Clamp01(elapsed / ParkOpenTweenDuration);
+                    float eased = Mathf.SmoothStep(0f, 1f, t);
+
+                    Quaternion rotation = Quaternion.Slerp(startRotation, targetRotation, eased);
+                    BuildBoardView(board, rotation, padding, out Vector3 currentViewCenter, out float fittedDistance);
+                    float distance = Mathf.Max(Mathf.Lerp(startDistance, targetDistance, eased), fittedDistance);
+                    mainCamera.transform.position = AddPerspectiveBacking(currentViewCenter, rotation, distance);
+                    mainCamera.transform.rotation = rotation;
+                    yield return null;
+                }
+
+                mainCamera.transform.position = AddPerspectiveBacking(targetViewCenter, targetRotation, targetDistance);
+                mainCamera.transform.rotation = targetRotation;
             }
-
-            mainCamera.transform.position = AddOrthographicBacking(targetViewCenter, targetRotation);
-            mainCamera.transform.rotation = targetRotation;
-            mainCamera.orthographicSize = targetSize;
+            finally
+            {
+                IsTweening = false;
+            }
         }
 
         public bool TryGetScreenRay(Vector2 screenPosition, out Ray ray)
@@ -168,7 +179,7 @@ namespace MochiPark.Runtime.Views
             Quaternion cameraRotation,
             Vector4 padding,
             out Vector3 viewCenter,
-            out float orthographicSize)
+            out float cameraDistance)
         {
             Vector3 boardCenter = GetBoardCenter(board);
             float minX = -board.TileSizeXZ * 0.5f;
@@ -209,26 +220,68 @@ namespace MochiPark.Runtime.Views
 
             float aspect = mainCamera != null && mainCamera.aspect > 0f ? mainCamera.aspect : 16f / 9f;
             float verticalSize = (viewMaxY - viewMinY) * 0.5f;
-            float horizontalSize = (viewMaxX - viewMinX) * 0.5f / aspect;
+            float horizontalSize = (viewMaxX - viewMinX) * 0.5f;
 
             viewCenter = boardCenter + cameraRotation * new Vector3(viewCenterOffset.x, viewCenterOffset.y, 0f);
-            orthographicSize = Mathf.Max(verticalSize, horizontalSize);
+
+            float minDepthOffset = float.PositiveInfinity;
+            for (int i = 0; i < corners.Length; i++)
+            {
+                Vector3 cameraSpace = inverseRotation * (corners[i] - viewCenter);
+                minDepthOffset = Mathf.Min(minDepthOffset, cameraSpace.z);
+            }
+
+            float verticalFovRadians = PerspectiveFieldOfView * Mathf.Deg2Rad;
+            float verticalTangent = Mathf.Tan(verticalFovRadians * 0.5f);
+            float horizontalTangent = verticalTangent * aspect;
+            float verticalDistance = verticalSize / verticalTangent - minDepthOffset;
+            float horizontalDistance = horizontalSize / horizontalTangent - minDepthOffset;
+            float minimumDistance = NearClipPlane + CameraClipPlanePadding - minDepthOffset;
+            cameraDistance = Mathf.Max(verticalDistance, horizontalDistance, minimumDistance);
         }
 
         private void BuildEditView(
             RuntimeBoardState board,
             out Vector3 targetPosition,
-            out Quaternion targetRotation,
-            out float targetSize)
+            out Quaternion targetRotation)
         {
             targetRotation = Quaternion.Euler(EditCameraEuler);
-            BuildBoardView(board, targetRotation, EditCameraBoundaryPadding, out Vector3 targetViewCenter, out targetSize);
-            targetPosition = AddOrthographicBacking(targetViewCenter, targetRotation);
+            BuildBoardView(board, targetRotation, EditCameraBoundaryPadding, out Vector3 targetViewCenter, out float targetDistance);
+            targetPosition = AddPerspectiveBacking(targetViewCenter, targetRotation, targetDistance);
         }
 
-        private static Vector3 AddOrthographicBacking(Vector3 viewPosition, Quaternion viewRotation)
+        private void ConfigurePerspectiveProjection()
         {
-            return viewPosition + viewRotation * Vector3.back * CameraBackingDistance;
+            if (mainCamera == null)
+            {
+                return;
+            }
+
+            mainCamera.orthographic = false;
+            mainCamera.fieldOfView = PerspectiveFieldOfView;
+            mainCamera.nearClipPlane = NearClipPlane;
+            mainCamera.farClipPlane = FarClipPlane;
+        }
+
+        private static float GetCurrentViewDistance(
+            Camera camera,
+            Vector3 targetViewCenter,
+            Quaternion startRotation,
+            float fallbackDistance)
+        {
+            if (camera == null)
+            {
+                return fallbackDistance;
+            }
+
+            Vector3 startForward = startRotation * Vector3.forward;
+            float currentDistance = Vector3.Dot(targetViewCenter - camera.transform.position, startForward);
+            return currentDistance > NearClipPlane ? currentDistance : fallbackDistance;
+        }
+
+        private static Vector3 AddPerspectiveBacking(Vector3 viewPosition, Quaternion viewRotation, float distance)
+        {
+            return viewPosition + viewRotation * Vector3.back * distance;
         }
     }
 }
