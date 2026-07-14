@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b83664d77f474a5298814b6cb25c2e8f, type: 3}
+  m_Name: mochi_park_audio_library
+  m_EditorClassIdentifier: Assembly-CSharp::MochiPark.Runtime.Audio.AudioLibrarySO
+  lobbyMusic: {fileID: 8300000, guid: 879ee65bfd096494a81549a72bad8ea5, type: 3}
+  gameplayMusic:
+  - {fileID: 8300000, guid: 2eeb9173d716a634b9b87d9eb8ada251, type: 3}
+  - {fileID: 8300000, guid: e504f0d21d0a0384b9bf663a495234c7, type: 3}
+  - {fileID: 8300000, guid: e26e1c6473ae9734489d22f7b35f5c7e, type: 3}
+  frenzyRunningMusic: {fileID: 8300000, guid: c67c858941786e3409501dc3d8f7d147, type: 3}
+  frenzyStartSfx: {fileID: 8300000, guid: f501574aa899e5a42a11b0ca8ba276d9, type: 3}
+  sfxCues:
+  - id: frenzy_start
+    clip: {fileID: 8300000, guid: f501574aa899e5a42a11b0ca8ba276d9, type: 3}
+    volume: 1
+  - id: ui_button_click
+    clip: {fileID: 8300000, guid: a007439e61c599449b4a14b0819e5bf3, type: 3}
+    volume: 1
+  - id: game_result
+    clip: {fileID: 8300000, guid: 6a857e57a1b2c0c48b087f4499c8cff3, type: 3}
+    volume: 1
+  musicVolume: 0.75
+  frenzyMusicVolume: 0.85
+  sfxVolume: 1
+  frenzyFadeInSeconds: 0.75
+  frenzyFadeOutSeconds: 0.75

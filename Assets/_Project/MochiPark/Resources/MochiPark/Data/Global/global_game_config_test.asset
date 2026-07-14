@@ -1,0 +1,53 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5a0f2cfd2d4b4b7cb92ac6fb5a4f0012, type: 3}
+  m_Name: global_game_config_test
+  m_EditorClassIdentifier: 
+  defaultVisitorCount: 2
+  defaultSpawnDelay: 3
+  defaultVisitorSpeed: 1
+  defaultSpeedControlEnabled: 1
+  defaultAllowedGameSpeeds:
+  - 1
+  - 2
+  - 3
+  defaultGameSpeedOnDayStart: 1
+  defaultUpgradeRollCount: 0
+  defaultDraftCardCount: 3
+  defaultAllowPlacementBeforeRun: 1
+  defaultAllowPlacementDuringRun: 0
+  defaultFrenzyConfig:
+    enabled: 1
+    rumbleThreshold: 4
+    durationSeconds: 8
+    joyMultiplier: 2
+    callVisitorBonus: 1
+    resetRumbleOnStart: 1
+    maxFrenzyPerDay: 1
+  defaultVisitorViewPrefabs:
+  - {fileID: 4837050389052360809, guid: b2e1f0075d45bea4787aae63eafa02bb, type: 3}
+  - {fileID: 4367216867783583609, guid: 63d554cffe524154f9b56de6eb4bdbf3, type: 3}
+  - {fileID: 1781688200108034416, guid: 2c33a8354a71e1944889230f6fb367da, type: 3}
+  - {fileID: 3029061122840041274, guid: d4cbe4fe1f755cb4fba52171ff7b088c, type: 3}
+  - {fileID: 1602383761687341845, guid: 4ad6b5a64185319478770e4f6782e01b, type: 3}
+  defaultVisitorIdleStateName: Idle
+  defaultVisitorRunStateName: Move
+  defaultVisitorAnimationCrossFadeDuration: 0.1
+  defaultMaxFellowCount: 4
+  defaultFellowStackOffset: -0.1
+  defaultFellowScale: 0.75
+  mochiUnitTriggeredVfxPrefab: {fileID: 550820310775498910, guid: b8727361f3e47264d989af571b768502, type: 3}
+  mochiUnitSelectedMaterial: {fileID: 2100000, guid: 1a3bc750d2ca5b749aff44fa62d423c2, type: 2}
+  uiConfig: {fileID: 11400000, guid: bdb35d056aac54549898b5a46221d85c, type: 2}
+  useFixedRandomSeed: 1
+  fixedRandomSeed: 12345
+  enableEditorAutoBootstrap: 1

@@ -1,0 +1,55 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5a0f2cfd2d4b4b7cb92ac6fb5a4f0015, type: 3}
+  m_Name: unit_quay_nan_lai_tra_sua
+  m_EditorClassIdentifier: 
+  unitTypeId: unit_quay_nan_lai_tra_sua
+  displayName: Quay Nan Lai Tra Sua
+  description: Linger sample. Visitors pause briefly after entering the influenced
+    path cell.
+  rarity: 0
+  family: 1
+  tags: 03000000
+  footprintPattern: {fileID: 11400000, guid: 6b1e0a1f2c3344d89a00000000000001, type: 2}
+  influencePatterns:
+  - areaId: main
+    pattern: {fileID: 11400000, guid: 6b1e0a1f2c3344d89a00000000000002, type: 2}
+  rotationAllowed: 1
+  triggerRules:
+  - triggerType: 0
+    targetAreaId: main
+    chance: 1
+    cooldownSeconds: 0
+    triggerOncePerVisitor: 1
+    dailyLimit: 0
+    requiresFrenzy: 0
+    requiresNotFrenzy: 0
+    conditionTags: 
+  effectPayloads:
+  - effectType: 4
+    baseAmount: 1
+    scalesWithFellows: 0
+    affectedByFrenzy: 0
+    sourceCategory: 1
+    durationSeconds: 1.5
+    customPayloadId: 
+  defaultDailyCharges: 0
+  storageDefinition:
+    enabled: 0
+    capacity: 0
+    fillMode: 
+    cashOutCondition: 
+    cashOutMultiplier: 1
+    affectedByFrenzy: 0
+  viewPrefab: {fileID: 6887300428784837256, guid: 5a80bb6a36b19ef49bc1a79d15ccbb9c, type: 3}
+  icon: {fileID: 0}
+  balanceNotes: '06 sample: validates ApplyLinger without making a repeat trigger loop.'

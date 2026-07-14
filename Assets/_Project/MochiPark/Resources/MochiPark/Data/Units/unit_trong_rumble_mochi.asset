@@ -1,0 +1,54 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5a0f2cfd2d4b4b7cb92ac6fb5a4f0015, type: 3}
+  m_Name: unit_trong_rumble_mochi
+  m_EditorClassIdentifier: 
+  unitTypeId: unit_trong_rumble_mochi
+  displayName: Trong Rumble Mochi
+  description: Rumble sample. Adds enough rumble to open the test Frenzy window.
+  rarity: 1
+  family: 3
+  tags: 0500000006000000
+  footprintPattern: {fileID: 11400000, guid: 6b1e0a1f2c3344d89a00000000000001, type: 2}
+  influencePatterns:
+  - areaId: main
+    pattern: {fileID: 11400000, guid: 6b1e0a1f2c3344d89a00000000000002, type: 2}
+  rotationAllowed: 1
+  triggerRules:
+  - triggerType: 0
+    targetAreaId: main
+    chance: 1
+    cooldownSeconds: 0
+    triggerOncePerVisitor: 1
+    dailyLimit: 0
+    requiresFrenzy: 0
+    requiresNotFrenzy: 0
+    conditionTags: 
+  effectPayloads:
+  - effectType: 1
+    baseAmount: 4
+    scalesWithFellows: 0
+    affectedByFrenzy: 0
+    sourceCategory: 2
+    durationSeconds: 0
+    customPayloadId: 
+  defaultDailyCharges: 0
+  storageDefinition:
+    enabled: 0
+    capacity: 0
+    fillMode: 
+    cashOutCondition: 
+    cashOutMultiplier: 1
+    affectedByFrenzy: 0
+  viewPrefab: {fileID: 6887300428784837256, guid: 5a80bb6a36b19ef49bc1a79d15ccbb9c, type: 3}
+  icon: {fileID: 0}
+  balanceNotes: '06 sample: 4 rumble meets the test threshold and starts Frenzy.'

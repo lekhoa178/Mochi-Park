@@ -1,0 +1,62 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: ProjectB_Overlay_Screen Space Checkerboard Vignette
+  m_Shader: {fileID: 4800000, guid: e7f30c2fd7cb4e9c8fb6f72c95657e19, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _ConfettiTex:
+        m_Texture: {fileID: 2800000, guid: 0db6957bb56729a4995caccc7d6d8306, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _Alpha: 1
+    - _AspectCorrection: 0
+    - _CheckerBlendOpacity: 0.45
+    - _CheckerBlendSoftness: 0.16
+    - _CheckerScale: 30
+    - _CheckerSelectorScale: 4
+    - _ConfettiCount: 24
+    - _ConfettiDriftSpeed: 0.32
+    - _ConfettiEdgeBand: 0.384
+    - _ConfettiFadePortion: 0.197
+    - _ConfettiLifetime: 2.04
+    - _ConfettiOpacity: 0.34
+    - _ConfettiRotationSpeed: 3.75
+    - _ConfettiSize: 0.0451
+    - _ConfettiSizeJitter: 0.22
+    - _ConfettiWander: 0.0145
+    - _ConfettiWanderSpeed: 1.273
+    - _EdgeIntensity: 0.37
+    - _GradientVignetteOpacity: 1
+    - _SubCheckerScale: 15
+    - _VignetteRadius: 1
+    - _VignetteSoftness: 0.499
+    m_Colors:
+    - _CheckerAnimationSpeed: {r: 0, g: -0.05, b: 0, a: 0}
+    - _ColorA: {r: 0, g: 0, b: 0, a: 0}
+    - _ColorB: {r: 1, g: 0.6537613, b: 0, a: 0.7372549}
+    - _ConfettiSheetTiles: {r: 2, g: 2, b: 0, a: 0}
+    - _ConfettiTint: {r: 2.4622886, g: 2.4622886, b: 2.4622886, a: 1}
+    - _GradientVignetteColor: {r: 1, g: 0.4145221, b: 0, a: 0.5372549}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

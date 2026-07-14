@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5a0f2cfd2d4b4b7cb92ac6fb5a4f0013, type: 3}
+  m_Name: board_test_line_01
+  m_EditorClassIdentifier: 
+  boardId: board_test_line_01
+  gridText: 'OOLL
+
+    SPOO
+
+    OPPO
+
+    LOEO'
+  tilePrefabSet:
+    pathPrefab: {fileID: 8328937710923356089, guid: 5d86ee37c770fd348a50f38d25cec6fe, type: 3}
+    useMultiplePathPrefabs: 0
+    pathOneSideEdgePrefab: {fileID: 0}
+    pathTwoSideEdgePrefab: {fileID: 0}
+    pathTwoSideParallelEdgePrefab: {fileID: 0}
+    pathThreeSideEdgePrefab: {fileID: 0}
+    startPrefab: {fileID: 1666184986563360981, guid: 4fc279f853bd91d419ed6204fa942a8f, type: 3}
+    exitPrefab: {fileID: 8422453094233444097, guid: 5bd9c90469caa794fab04da03094f36e, type: 3}
+    buildablePrefab: {fileID: 610628822238812972, guid: 4f4a80531cbafb744a3b521b68b3544d, type: 3}
+    highlightSprite: {fileID: 21300000, guid: 0501344af91962540b65debe214c9c5d, type: 3}
+    highlightSpriteColor: {r: 0.8323559, g: 1, b: 0.33333337, a: 1}
+    shovelHighlightSpriteColor: {r: 0.45, g: 0.8, b: 1, a: 1}
+    buildableLockedSprite: {fileID: 21300000, guid: cbd42d9a2a3df7d4dbf6ff92fb7af881, type: 3}
+    footprintPreviewSprite: {fileID: 21300000, guid: 402c0cdeb50ab3c4fb43b90fc3eff50d, type: 3}
+    affectedPreviewSprite: {fileID: 21300000, guid: d2f77ba20580e704a902442f216171bd, type: 3}
+    footprintPreviewColor: {r: 0.7391721, g: 1, b: 0.34901965, a: 0.78431374}
+    affectedPathPreviewColor: {r: 0.5896226, g: 0.81737137, b: 1, a: 0.78431374}
+    affectedBuildablePreviewColor: {r: 0.9077403, g: 0.6745283, b: 1, a: 0.78431374}
+    invalidPreviewColor: {r: 1, g: 0.5518868, b: 0.5518868, a: 0.78431374}
+  boardTags:
+  - tutorial
+  - test
+  themeId: test_garden
