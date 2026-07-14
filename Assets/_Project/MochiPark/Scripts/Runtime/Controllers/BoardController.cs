@@ -114,6 +114,7 @@ namespace MochiPark.Runtime.Views
         private bool isOpeningPark;
         private bool isCountdownIntroPlaying;
         private bool hasPlayedCountdownIntro;
+        private bool isDraftSuppressedForUnitDrag;
 
         [Header("Scene Loading")]
         [SerializeField] private string lobbySceneName = DefaultLobbySceneName;
@@ -1925,6 +1926,7 @@ namespace MochiPark.Runtime.Views
             draggedUnitView = pressedUnitView;
             activePointerId = pressedPointerId;
             ClearPressedUnitState();
+            SetDraftSuppressedForUnitDrag(true);
             screenspaceIndicatorView?.HideEditPanel();
             PreviewDraggedUnit(screenPosition);
         }
@@ -2039,6 +2041,18 @@ namespace MochiPark.Runtime.Views
         {
             draggedUnitView = null;
             activePointerId = MousePointerId;
+            SetDraftSuppressedForUnitDrag(false);
+        }
+
+        private void SetDraftSuppressedForUnitDrag(bool suppressed)
+        {
+            if (isDraftSuppressedForUnitDrag == suppressed)
+            {
+                return;
+            }
+
+            isDraftSuppressedForUnitDrag = suppressed;
+            draftView?.SetSuppressed(suppressed);
         }
 
         private void ClearPressedUnitState()
@@ -2198,10 +2212,10 @@ namespace MochiPark.Runtime.Views
             }
 
             ResolvePendingDraftBeforeOpenPark();
-            draftView?.Close();
             isOpeningPark = true;
             ClearPressedUnitState();
             ClearDragState();
+            draftView?.Close();
             DeselectUnit();
             SetShovelModeActive(false);
             SetBuildableSpritesVisible(false);
@@ -2251,9 +2265,9 @@ namespace MochiPark.Runtime.Views
         private IEnumerator PlayCountdownIntroRoutine(RuntimeBoardState board)
         {
             isCountdownIntroPlaying = true;
-            draftView?.SetSuppressed(true);
             ClearPressedUnitState();
             ClearDragState();
+            draftView?.SetSuppressed(true);
             DeselectUnit();
             SetShovelModeActive(false);
             SetBuildableSpritesVisible(false);

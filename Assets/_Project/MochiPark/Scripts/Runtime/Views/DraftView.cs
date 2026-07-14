@@ -109,7 +109,7 @@ namespace MochiPark.Runtime.Views
             isSuppressed = suppressed;
             if (isSuppressed)
             {
-                SetHiddenImmediate();
+                Close();
                 return;
             }
 
@@ -332,7 +332,7 @@ namespace MochiPark.Runtime.Views
             }
 
             CacheShownPosition();
-            if (!isOpen)
+            if (!isOpen && tweenCoroutine == null)
             {
                 draftPanel.anchoredPosition = GetHiddenPosition();
             }
