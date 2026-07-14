@@ -1492,6 +1492,11 @@ namespace MochiPark.Runtime.Views
 
         private bool TryApplySmartPreviewRotation(UnitInstanceState unit, Vector2Int anchorCell, RuntimeBoardState board)
         {
+            if (unit == null || !HasPathTargetedInfluence(unit.Definition))
+            {
+                return false;
+            }
+
             if (!TryFindBestValidRotation(
                 unit,
                 anchorCell,
@@ -1563,7 +1568,9 @@ namespace MochiPark.Runtime.Views
             for (int i = 0; i < influencePatterns.Count; i++)
             {
                 InfluencePatternSpec influence = influencePatterns[i];
-                if (influence == null || influence.Pattern == null)
+                if (influence == null ||
+                    influence.Pattern == null ||
+                    !influence.Pattern.TargetsMochiPath)
                 {
                     continue;
                 }
@@ -1572,7 +1579,7 @@ namespace MochiPark.Runtime.Views
                 for (int j = 0; j < cells.Count; j++)
                 {
                     Vector2Int cell = cells[j];
-                    if (board.IsPathCell(cell))
+                    if (board.IsInBounds(cell) && board.IsPathCell(cell))
                     {
                         affectedPathCells.Add(cell);
                     }
@@ -1580,6 +1587,28 @@ namespace MochiPark.Runtime.Views
             }
 
             return affectedPathCells.Count;
+        }
+
+        private static bool HasPathTargetedInfluence(UnitDefinitionSO unitDefinition)
+        {
+            if (unitDefinition == null)
+            {
+                return false;
+            }
+
+            IReadOnlyList<InfluencePatternSpec> influencePatterns = unitDefinition.InfluencePatterns;
+            for (int i = 0; i < influencePatterns.Count; i++)
+            {
+                InfluencePatternSpec influence = influencePatterns[i];
+                if (influence != null &&
+                    influence.Pattern != null &&
+                    influence.Pattern.TargetsMochiPath)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private void SetBuildableSpritesVisible(bool isVisible)

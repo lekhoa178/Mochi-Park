@@ -18,6 +18,8 @@ namespace MochiPark.Runtime.Data
         public string PatternId => patternId;
         public IReadOnlyList<GridCell> Cells => cells;
         public PatternTargetType TargetType => targetType;
+        public bool TargetsMochiPath =>
+            targetType == PatternTargetType.MochiPath || targetType == PatternTargetType.Mixed;
         public PatternRotationMode RotationMode => rotationMode;
         public string PreviewColorKey => previewColorKey;
     }

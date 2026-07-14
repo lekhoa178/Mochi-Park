@@ -204,7 +204,9 @@ namespace MochiPark.Runtime.Board
                 for (int j = 0; j < influencePatterns.Count; j++)
                 {
                     InfluencePatternSpec influence = influencePatterns[j];
-                    if (influence == null || influence.Pattern == null)
+                    if (influence == null ||
+                        influence.Pattern == null ||
+                        !influence.Pattern.TargetsMochiPath)
                     {
                         continue;
                     }

@@ -232,12 +232,13 @@ namespace MochiPark.Runtime.Units
 
         private static bool IsPredictablePathJoyRule(TriggerRuleSpec rule, string areaId)
         {
+            // A daily limit constrains trigger frequency, not the Joy amount produced by a trigger.
+            // Its remaining uses are communicated by the separate daily-limit indicator.
             if (rule == null ||
                 rule.TriggerType != TriggerType.OnMochiEnterArea ||
                 !string.Equals(rule.TargetAreaId, areaId) ||
                 rule.Chance < 1f ||
                 rule.CooldownSeconds > Mathf.Epsilon ||
-                rule.DailyLimit > 0 ||
                 rule.RequiresFrenzy ||
                 rule.RequiresNotFrenzy)
             {

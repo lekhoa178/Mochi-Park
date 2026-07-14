@@ -462,7 +462,9 @@ namespace MochiPark.Runtime.Level
             for (int i = 0; i < influencePatterns.Count; i++)
             {
                 InfluencePatternSpec influence = influencePatterns[i];
-                if (influence == null || influence.Pattern == null)
+                if (influence == null ||
+                    influence.Pattern == null ||
+                    !influence.Pattern.TargetsMochiPath)
                 {
                     continue;
                 }
@@ -471,7 +473,7 @@ namespace MochiPark.Runtime.Level
                 for (int j = 0; j < cells.Count; j++)
                 {
                     Vector2Int cell = cells[j];
-                    if (board.IsPathCell(cell))
+                    if (board.IsInBounds(cell) && board.IsPathCell(cell))
                     {
                         affectedPathCells.Add(cell);
                     }
