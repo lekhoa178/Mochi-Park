@@ -31,18 +31,14 @@ MonoBehaviour:
     dayCount: 1
     unlockCharges: 3
     unitPoolRulesOverride:
-      availableFamilies: 0000000001000000020000000300000004000000
-      unitWhitelist:
-      - {fileID: 11400000, guid: 6b1e0a1f2c3344d89a00000000000008, type: 2}
-      - {fileID: 11400000, guid: 6b1e0a1f2c3344d89a0000000000000a, type: 2}
-      - {fileID: 11400000, guid: 6b1e0a1f2c3344d89a0000000000000e, type: 2}
-      - {fileID: 11400000, guid: 6b1e0a1f2c3344d89a00000000000010, type: 2}
+      availableFamilies: []
+      unitWhitelist: []
       unitBlacklist: []
       requiredTags: 
-      guaranteedTags: 01000000
-      noDuplicateInDraft: 1
+      guaranteedTags: []
+      noDuplicateInDraft: 0
       maxGoldCardsPerDraft: 0
-      guaranteedOneBasicScorer: 1
+      guaranteedOneBasicScorer: 0
     baseVisitorCountOverride:
       hasValue: 1
       value: 2
@@ -65,17 +61,14 @@ MonoBehaviour:
         hasValue: 1
         value: 3
       unitPoolRulesOverride:
-        availableFamilies: 0000000001000000020000000300000004000000
-        unitWhitelist:
-        - {fileID: 11400000, guid: 6b1e0a1f2c3344d89a00000000000009, type: 2}
-        - {fileID: 11400000, guid: 6b1e0a1f2c3344d89a0000000000000c, type: 2}
-        - {fileID: 11400000, guid: 6b1e0a1f2c3344d89a0000000000000b, type: 2}
+        availableFamilies: []
+        unitWhitelist: []
         unitBlacklist: []
         requiredTags: 
-        guaranteedTags: 01000000
-        noDuplicateInDraft: 1
+        guaranteedTags: []
+        noDuplicateInDraft: 0
         maxGoldCardsPerDraft: 0
-        guaranteedOneBasicScorer: 1
+        guaranteedOneBasicScorer: 0
       visitorSpeedOverride:
         hasValue: 0
         value: 2
@@ -100,7 +93,7 @@ MonoBehaviour:
       specialDayEvents: 
       savePolicyOverride: 
   defaultUnitPoolRules:
-    availableFamilies: 0000000001000000020000000300000004000000
+    availableFamilies: []
     unitWhitelist:
     - {fileID: 11400000, guid: 6b1e0a1f2c3344d89a00000000000009, type: 2}
     - {fileID: 11400000, guid: 6b1e0a1f2c3344d89a00000000000008, type: 2}
@@ -113,10 +106,10 @@ MonoBehaviour:
     - {fileID: 11400000, guid: 6b1e0a1f2c3344d89a00000000000010, type: 2}
     unitBlacklist: []
     requiredTags: 
-    guaranteedTags: 01000000
-    noDuplicateInDraft: 1
+    guaranteedTags: []
+    noDuplicateInDraft: 0
     maxGoldCardsPerDraft: 0
-    guaranteedOneBasicScorer: 1
+    guaranteedOneBasicScorer: 0
   defaultVisitorCount: 2
   gameSpeedConfigOverride:
     speedControlEnabled:

@@ -146,6 +146,11 @@ namespace MochiPark.Runtime.Level
             return draftSystem != null && draftSystem.TrySelectOfferCard(cardIndex, out placedUnit);
         }
 
+        public bool TryRerollUpgrade()
+        {
+            return draftSystem != null && draftSystem.TryRerollCurrentOffer();
+        }
+
         public bool TryGetUnitDefinition(string unitTypeId, out UnitDefinitionSO unit)
         {
             unit = null;

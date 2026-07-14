@@ -47,6 +47,20 @@ namespace MochiPark.Runtime.Level
             OfferNextRoll();
         }
 
+        public bool TryRerollCurrentOffer()
+        {
+            if (state == null ||
+                state.Phase != GamePhase.Placement ||
+                state.Draft.IsCompletedForDay ||
+                state.Draft.HasPendingPick ||
+                state.Draft.ActiveOffer == null)
+            {
+                return false;
+            }
+
+            return OfferNextRoll();
+        }
+
         public bool TrySelectOfferCard(int cardIndex, out UnitInstanceState placedUnit)
         {
             placedUnit = null;
@@ -163,13 +177,13 @@ namespace MochiPark.Runtime.Level
                 cardIndex < offer.UnitTypeIds.Count;
         }
 
-        private void OfferNextRoll()
+        private bool OfferNextRoll()
         {
             if (state.Draft.CurrentRollIndex >= state.Draft.TotalRollsToday)
             {
                 state.Draft.CompleteForDay();
                 eventBus.Publish(new DraftCompletedForDayEvent(state));
-                return;
+                return false;
             }
 
             List<UnitDefinitionSO> candidates = BuildCandidatePool(state.CurrentDayConfig.UnitPoolRules);
@@ -179,7 +193,7 @@ namespace MochiPark.Runtime.Level
                 eventBus.Publish(new PopupRequestedEvent("Draft unavailable", "No units passed the draft pool rules."));
                 state.Draft.CompleteForDay();
                 eventBus.Publish(new DraftCompletedForDayEvent(state));
-                return;
+                return false;
             }
 
             int cardCount = Mathf.Max(MinimumDemoDraftCardCount, state.CurrentDayConfig.DraftCardCount);
@@ -209,6 +223,7 @@ namespace MochiPark.Runtime.Level
             state.Draft.SetActiveOffer(offer);
             state.Draft.NextRngStep();
             eventBus.Publish(new DraftOfferedEvent(state, offer));
+            return true;
         }
 
         private List<UnitDefinitionSO> BuildCandidatePool(UnitPoolRules rules)

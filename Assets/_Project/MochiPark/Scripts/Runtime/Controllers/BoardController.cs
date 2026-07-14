@@ -167,6 +167,15 @@ namespace MochiPark.Runtime.Views
             if (draggedUnitView == null &&
                 pressedUnitView == null &&
                 keyboard != null &&
+                keyboard.jKey.wasPressedThisFrame)
+            {
+                director.TryRerollUpgrade();
+                return;
+            }
+
+            if (draggedUnitView == null &&
+                pressedUnitView == null &&
+                keyboard != null &&
                 keyboard.rKey.wasPressedThisFrame)
             {
                 RotateSelectedUnit();
