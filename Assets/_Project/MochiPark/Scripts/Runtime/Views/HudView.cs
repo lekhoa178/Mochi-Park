@@ -749,41 +749,9 @@ namespace MochiPark.Runtime.Views
 
         private int GetMaxDayNumber()
         {
-            if (state == null || state.Definition == null || state.Definition.Stages == null)
-            {
-                return 1;
-            }
-
-            StageConfig stage = null;
-            for (int i = 0; i < state.Definition.Stages.Count; i++)
-            {
-                StageConfig candidate = state.Definition.Stages[i];
-                if (candidate != null && candidate.StageIndex == state.CurrentStageIndex)
-                {
-                    stage = candidate;
-                    break;
-                }
-            }
-
-            if (stage == null)
-            {
-                return 1;
-            }
-
-            int maxDayNumber = stage.DayCount;
-            if (stage.Days != null)
-            {
-                for (int i = 0; i < stage.Days.Count; i++)
-                {
-                    DayConfig day = stage.Days[i];
-                    if (day != null)
-                    {
-                        maxDayNumber = Mathf.Max(maxDayNumber, day.DayIndexInLevel + 1);
-                    }
-                }
-            }
-
-            return Mathf.Max(1, maxDayNumber);
+            return state != null && state.Definition != null
+                ? state.Definition.TotalDayCount
+                : 1;
         }
 
         private void SetModeIcon(Sprite sprite)

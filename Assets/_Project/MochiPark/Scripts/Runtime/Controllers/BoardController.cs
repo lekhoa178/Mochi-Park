@@ -4173,10 +4173,34 @@ namespace MochiPark.Runtime.Views
                 return;
             }
 
-            if (cameraController != null && evt.State != null)
+            if (evt.State != null)
             {
-                StartCoroutine(cameraController.TweenToEditView(evt.State.Board));
+                StartCoroutine(AdvanceToNextDay(evt.State));
             }
+        }
+
+        private IEnumerator AdvanceToNextDay(RuntimeLevelState completedState)
+        {
+            if (cameraController != null)
+            {
+                yield return cameraController.TweenToEditView(completedState.Board);
+            }
+
+            if (director == null ||
+                director.State != completedState ||
+                completedState.Definition == null)
+            {
+                yield break;
+            }
+
+            int nextDayIndex = completedState.CurrentDayIndex + 1;
+            if (!completedState.Definition.TryGetStageIndexForDay(nextDayIndex, out int nextStageIndex))
+            {
+                ShowResult(completedState);
+                yield break;
+            }
+
+            director.StartDay(nextStageIndex, nextDayIndex);
         }
 
         private void ShowResult(RuntimeLevelState state)
@@ -4209,37 +4233,7 @@ namespace MochiPark.Runtime.Views
                 return false;
             }
 
-            IReadOnlyList<StageConfig> stages = state.Definition.Stages;
-            if (stages == null || stages.Count == 0)
-            {
-                return true;
-            }
-
-            StageConfig currentStage = null;
-            bool hasLaterStage = false;
-            for (int i = 0; i < stages.Count; i++)
-            {
-                StageConfig stage = stages[i];
-                if (stage == null)
-                {
-                    continue;
-                }
-
-                if (stage.StageIndex == state.CurrentStageIndex)
-                {
-                    currentStage = stage;
-                }
-
-                if (stage.StageIndex > state.CurrentStageIndex && stage.DayCount > 0)
-                {
-                    hasLaterStage = true;
-                }
-            }
-
-            int dayCount = currentStage != null
-                ? Mathf.Max(1, currentStage.DayCount)
-                : Mathf.Max(1, state.CurrentDayIndex + 1);
-            return state.CurrentDayIndex >= dayCount - 1 && !hasLaterStage;
+            return state.CurrentDayIndex >= state.Definition.TotalDayCount - 1;
         }
 
         private void MoveVisitorView(VisitorState visitor, Vector2Int targetCell)

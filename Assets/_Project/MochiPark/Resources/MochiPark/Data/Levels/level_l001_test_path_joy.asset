@@ -92,6 +92,136 @@ MonoBehaviour:
         value: 0
       specialDayEvents: 
       savePolicyOverride: 
+  - stageIndex: 1
+    dayCount: 1
+    unlockCharges: 3
+    unitPoolRulesOverride:
+      availableFamilies: []
+      unitWhitelist: []
+      unitBlacklist: []
+      requiredTags:
+      guaranteedTags: []
+      noDuplicateInDraft: 0
+      maxGoldCardsPerDraft: 0
+      guaranteedOneBasicScorer: 0
+    baseVisitorCountOverride:
+      hasValue: 1
+      value: 2
+    visitorSpeedOverride:
+      hasValue: 0
+      value: 2
+    newUnlockedFamilies: 00000000
+    days:
+    - dayIndexInLevel: 1
+      baseVisitorCountOverride:
+        hasValue: 1
+        value: 2
+      spawnDelayOverride:
+        hasValue: 0
+        value: 3
+      upgradeRollCountOverride:
+        hasValue: 1
+        value: 3
+      draftCardCountOverride:
+        hasValue: 1
+        value: 3
+      unitPoolRulesOverride:
+        availableFamilies: []
+        unitWhitelist: []
+        unitBlacklist: []
+        requiredTags:
+        guaranteedTags: []
+        noDuplicateInDraft: 0
+        maxGoldCardsPerDraft: 0
+        guaranteedOneBasicScorer: 0
+      visitorSpeedOverride:
+        hasValue: 0
+        value: 2
+      speedControlEnabledOverride:
+        hasValue: 1
+        value: 1
+      allowedGameSpeedMultipliersOverride:
+        hasValue: 1
+        values:
+        - 1
+        - 2
+        - 3
+      defaultGameSpeedOnDayStartOverride:
+        hasValue: 1
+        value: 1
+      allowPlacementBeforeRun:
+        hasValue: 1
+        value: 1
+      allowPlacementDuringRun:
+        hasValue: 1
+        value: 0
+      specialDayEvents:
+      savePolicyOverride:
+  - stageIndex: 2
+    dayCount: 1
+    unlockCharges: 3
+    unitPoolRulesOverride:
+      availableFamilies: []
+      unitWhitelist: []
+      unitBlacklist: []
+      requiredTags:
+      guaranteedTags: []
+      noDuplicateInDraft: 0
+      maxGoldCardsPerDraft: 0
+      guaranteedOneBasicScorer: 0
+    baseVisitorCountOverride:
+      hasValue: 1
+      value: 2
+    visitorSpeedOverride:
+      hasValue: 0
+      value: 2
+    newUnlockedFamilies: 00000000
+    days:
+    - dayIndexInLevel: 2
+      baseVisitorCountOverride:
+        hasValue: 1
+        value: 2
+      spawnDelayOverride:
+        hasValue: 0
+        value: 3
+      upgradeRollCountOverride:
+        hasValue: 1
+        value: 3
+      draftCardCountOverride:
+        hasValue: 1
+        value: 3
+      unitPoolRulesOverride:
+        availableFamilies: []
+        unitWhitelist: []
+        unitBlacklist: []
+        requiredTags:
+        guaranteedTags: []
+        noDuplicateInDraft: 0
+        maxGoldCardsPerDraft: 0
+        guaranteedOneBasicScorer: 0
+      visitorSpeedOverride:
+        hasValue: 0
+        value: 2
+      speedControlEnabledOverride:
+        hasValue: 1
+        value: 1
+      allowedGameSpeedMultipliersOverride:
+        hasValue: 1
+        values:
+        - 1
+        - 2
+        - 3
+      defaultGameSpeedOnDayStartOverride:
+        hasValue: 1
+        value: 1
+      allowPlacementBeforeRun:
+        hasValue: 1
+        value: 1
+      allowPlacementDuringRun:
+        hasValue: 1
+        value: 0
+      specialDayEvents:
+      savePolicyOverride:
   defaultUnitPoolRules:
     availableFamilies: []
     unitWhitelist:

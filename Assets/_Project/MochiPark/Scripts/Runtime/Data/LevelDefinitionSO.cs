@@ -160,10 +160,105 @@ namespace MochiPark.Runtime.Data
         public StarThresholds StarThresholds => starThresholds;
         public IReadOnlyList<InitialUnitSpec> InitialUnits => initialUnits;
         public IReadOnlyList<StageConfig> Stages => stages;
+        public int TotalDayCount
+        {
+            get
+            {
+                if (stages == null)
+                {
+                    return 1;
+                }
+
+                int totalByStageCounts = 0;
+                int highestConfiguredDayNumber = 0;
+
+                for (int i = 0; i < stages.Count; i++)
+                {
+                    StageConfig stage = stages[i];
+                    if (stage == null)
+                    {
+                        continue;
+                    }
+
+                    IReadOnlyList<DayConfig> configuredDays = stage.Days;
+                    int configuredDayCount = configuredDays != null ? configuredDays.Count : 0;
+                    totalByStageCounts += Mathf.Max(stage.DayCount, configuredDayCount);
+                    for (int dayIndex = 0; dayIndex < configuredDayCount; dayIndex++)
+                    {
+                        DayConfig day = configuredDays[dayIndex];
+                        if (day != null)
+                        {
+                            highestConfiguredDayNumber = Mathf.Max(
+                                highestConfiguredDayNumber,
+                                day.DayIndexInLevel + 1);
+                        }
+                    }
+                }
+
+                return Mathf.Max(1, Mathf.Max(totalByStageCounts, highestConfiguredDayNumber));
+            }
+        }
         public UnitPoolRules DefaultUnitPoolRules => defaultUnitPoolRules;
         public int DefaultVisitorCount => Mathf.Max(0, defaultVisitorCount);
         public GameSpeedConfigOverride GameSpeedConfigOverride => gameSpeedConfigOverride;
         public string TutorialConfigId => tutorialConfigId;
         public string DesignNotes => designNotes;
+
+        public bool TryGetStageIndexForDay(int dayIndexInLevel, out int stageIndex)
+        {
+            stageIndex = 0;
+            if (dayIndexInLevel < 0)
+            {
+                return false;
+            }
+
+            if (stages == null)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < stages.Count; i++)
+            {
+                StageConfig stage = stages[i];
+                if (stage == null)
+                {
+                    continue;
+                }
+
+                IReadOnlyList<DayConfig> configuredDays = stage.Days;
+                int configuredDayCount = configuredDays != null ? configuredDays.Count : 0;
+                for (int dayIndex = 0; dayIndex < configuredDayCount; dayIndex++)
+                {
+                    DayConfig day = configuredDays[dayIndex];
+                    if (day != null && day.DayIndexInLevel == dayIndexInLevel)
+                    {
+                        stageIndex = stage.StageIndex;
+                        return true;
+                    }
+                }
+            }
+
+            int firstDayIndex = 0;
+            for (int i = 0; i < stages.Count; i++)
+            {
+                StageConfig stage = stages[i];
+                if (stage == null)
+                {
+                    continue;
+                }
+
+                int configuredDayCount = stage.Days != null ? stage.Days.Count : 0;
+                int stageDayCount = Mathf.Max(stage.DayCount, configuredDayCount);
+                if (dayIndexInLevel < firstDayIndex + stageDayCount)
+                {
+                    stageIndex = stage.StageIndex;
+                    return true;
+                }
+
+                firstDayIndex += stageDayCount;
+            }
+
+            return false;
+        }
     }
 }

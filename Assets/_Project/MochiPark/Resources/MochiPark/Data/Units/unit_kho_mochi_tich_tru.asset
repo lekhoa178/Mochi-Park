@@ -19,10 +19,10 @@ MonoBehaviour:
   rarity: 1
   family: 4
   tags: 0700000001000000
-  footprintPattern: {fileID: 11400000, guid: 6b1e0a1f2c3344d89a00000000000001, type: 2}
+  footprintPattern: {fileID: 11400000, guid: 7f100000000000000000000000000101, type: 2}
   influencePatterns:
   - areaId: main
-    pattern: {fileID: 11400000, guid: 6b1e0a1f2c3344d89a00000000000002, type: 2}
+    pattern: {fileID: 11400000, guid: 7f10000000000000000000000000010a, type: 2}
   rotationAllowed: 1
   triggerRules:
   - triggerType: 0
