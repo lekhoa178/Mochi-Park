@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
+using MochiPark.Runtime.Audio;
 using MochiPark.Runtime.Board;
 using MochiPark.Runtime.Core;
 using MochiPark.Runtime.Data;
@@ -2021,7 +2022,10 @@ namespace MochiPark.Runtime.Views
             if (!director.PlacementSystem.MoveUnit(unit.InstanceId, clampedTargetCell, targetRotation))
             {
                 RefreshUnits();
+                return;
             }
+
+            MochiParkAudioManager.PlaySfx(MochiParkAudioManager.UnitPlacedSfxCueId);
         }
 
         private static Vector2Int ClampCellToBoard(RuntimeBoardState board, Vector2Int cell)

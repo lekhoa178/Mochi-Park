@@ -26,6 +26,12 @@ MonoBehaviour:
   - id: ui_button_click
     clip: {fileID: 8300000, guid: a007439e61c599449b4a14b0819e5bf3, type: 3}
     volume: 1
+  - id: unit_placed
+    clip: {fileID: 8300000, guid: a007439e61c599449b4a14b0819e5bf3, type: 3}
+    volume: 1
+  - id: joy_earned
+    clip: {fileID: 8300000, guid: 9c8b77acf3fc5f9449ad52caf2e67380, type: 3}
+    volume: 1
   - id: game_result
     clip: {fileID: 8300000, guid: 6a857e57a1b2c0c48b087f4499c8cff3, type: 3}
     volume: 1

@@ -10,6 +10,8 @@ namespace MochiPark.Runtime.Audio
         private const string AudioLibraryResourcePath = "MochiPark/Audio/mochi_park_audio_library";
         private const string LobbySceneName = "Lobby";
         public const string UiButtonClickSfxCueId = "ui_button_click";
+        public const string UnitPlacedSfxCueId = "unit_placed";
+        public const string JoyEarnedSfxCueId = "joy_earned";
         private const string GameResultSfxCueId = "game_result";
         private const float ResultMusicVolumeScale = 0.35f;
 
@@ -207,6 +209,7 @@ namespace MochiPark.Runtime.Audio
                 eventBus.LevelStarted -= OnLevelStarted;
                 eventBus.FrenzyStarted -= OnFrenzyStarted;
                 eventBus.FrenzyEnded -= OnFrenzyEnded;
+                eventBus.JoyCreated -= OnJoyCreated;
             }
 
             eventBus = boundEventBus;
@@ -218,6 +221,7 @@ namespace MochiPark.Runtime.Audio
             eventBus.LevelStarted += OnLevelStarted;
             eventBus.FrenzyStarted += OnFrenzyStarted;
             eventBus.FrenzyEnded += OnFrenzyEnded;
+            eventBus.JoyCreated += OnJoyCreated;
         }
 
         private void OnLevelStarted(LevelStartedEvent evt)
@@ -253,6 +257,14 @@ namespace MochiPark.Runtime.Audio
             }
 
             StartMusicTransition(FadeOutFrenzyAndResumeMusic());
+        }
+
+        private void OnJoyCreated(JoyCreatedEvent evt)
+        {
+            if (evt.Amount > 0)
+            {
+                PlaySfxInternal(JoyEarnedSfxCueId, 1f);
+            }
         }
 
         private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
