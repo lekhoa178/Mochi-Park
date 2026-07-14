@@ -761,7 +761,8 @@ namespace MochiPark.Runtime.Views
                         return false;
                     }
 
-                    direction = pathCells[lastPathIndex] - pathCells[lastPathIndex - 1];
+                    Vector2Int incomingDirection = pathCells[lastPathIndex] - pathCells[lastPathIndex - 1];
+                    direction = GetExitMoveOutDirection(board, cell, incomingDirection);
                     break;
                 default:
                     return false;
@@ -773,8 +774,59 @@ namespace MochiPark.Runtime.Views
                 return false;
             }
 
-            rotation = Quaternion.FromToRotation(Vector3.right, worldDirection.normalized);
+            Vector3 prefabDirection = type == BoardCellType.Exit ? Vector3.left : Vector3.right;
+            rotation = Quaternion.FromToRotation(prefabDirection, worldDirection.normalized);
             return true;
+        }
+
+        private static Vector2Int GetExitMoveOutDirection(
+            RuntimeBoardState board,
+            Vector2Int exitCell,
+            Vector2Int incomingDirection)
+        {
+            // At a corner, continuing straight takes precedence over the other board edge.
+            if (exitCell.x == 0 && incomingDirection == Vector2Int.left)
+            {
+                return Vector2Int.left;
+            }
+
+            if (exitCell.x == board.Width - 1 && incomingDirection == Vector2Int.right)
+            {
+                return Vector2Int.right;
+            }
+
+            if (exitCell.y == 0 && incomingDirection == Vector2Int.down)
+            {
+                return Vector2Int.down;
+            }
+
+            if (exitCell.y == board.Height - 1 && incomingDirection == Vector2Int.up)
+            {
+                return Vector2Int.up;
+            }
+
+            if (exitCell.x == 0)
+            {
+                return Vector2Int.left;
+            }
+
+            if (exitCell.x == board.Width - 1)
+            {
+                return Vector2Int.right;
+            }
+
+            if (exitCell.y == 0)
+            {
+                return Vector2Int.down;
+            }
+
+            if (exitCell.y == board.Height - 1)
+            {
+                return Vector2Int.up;
+            }
+
+            // Interior exits have no board-edge move-out direction, so preserve the path heading.
+            return incomingDirection;
         }
 
         private void CreateBuildableSprite(RuntimeBoardState board, Vector2Int cell, BoardCellType type)
