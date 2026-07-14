@@ -100,7 +100,7 @@ Material:
     - _ZWriteControl: 0
     m_Colors:
     - Color_: {r: 0.7490196, g: 0.7490196, b: 0.7490196, a: 1}
-    - _Color: {r: 0.7490196, g: 0.7490196, b: 0.7490196, a: 1}
+    - _Color: {r: 1, g: 0.7474106, b: 0.3254717, a: 1}
     - _DistortionSpeed: {r: -2, g: 1, b: 0, a: 0}
     - _DistortionTiling: {r: 1, g: 1, b: 0, a: 0}
     - _MainTexSpeed: {r: -1, g: 0, b: 0, a: 0}
