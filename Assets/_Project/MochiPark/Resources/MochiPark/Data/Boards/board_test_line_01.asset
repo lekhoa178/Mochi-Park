@@ -13,13 +13,15 @@ MonoBehaviour:
   m_Name: board_test_line_01
   m_EditorClassIdentifier: 
   boardId: board_test_line_01
-  gridText: 'OOLL
+  gridText: 'OLLLOOOOLL
 
-    SPOO
+    SPPPPPPPOO
 
-    OPPO
+    OOOOOOOPOO
 
-    LOEO'
+    LOOOOOOPOO
+
+    OOOOOOOPEO'
   tilePrefabSet:
     pathPrefab: {fileID: 8328937710923356089, guid: 5d86ee37c770fd348a50f38d25cec6fe, type: 3}
     useMultiplePathPrefabs: 0

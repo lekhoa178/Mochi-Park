@@ -1466,7 +1466,12 @@ namespace MochiPark.Runtime.Views
             if (selectedUnitView != null && director.State != null)
             {
                 selectedUnitView.transform.rotation = Quaternion.Euler(0f, (int)nextRotation * 90f, 0f);
-                PositionUnitOnSurface(selectedUnitView, director.State.Board.CellToWorldSurface(anchorCell));
+                PositionUnitForFootprint(
+                    selectedUnitView,
+                    director.State.Board,
+                    unit.Definition,
+                    anchorCell,
+                    nextRotation);
             }
 
             PlacementResult placement = director.PlacementSystem.CanPlace(
@@ -1798,7 +1803,12 @@ namespace MochiPark.Runtime.Views
                     unitView.transform.localScale = new Vector3(1.15f, 0.45f, 1.15f);
                 }
 
-                PositionUnitOnSurface(unitView, board.CellToWorldSurface(unit.AnchorCell));
+                PositionUnitForFootprint(
+                    unitView,
+                    board,
+                    unit.Definition,
+                    unit.AnchorCell,
+                    unit.Rotation);
 
                 Renderer renderer = unitView.GetComponentInChildren<Renderer>();
                 if (renderer != null && unit.Definition.ViewPrefab == null)
@@ -2038,9 +2048,10 @@ namespace MochiPark.Runtime.Views
             bool anchorChanged = !hasSelectedUnitPreviewAnchor || selectedUnitPreviewAnchorCell != clampedCell;
             selectedUnitPreviewAnchorCell = clampedCell;
             hasSelectedUnitPreviewAnchor = true;
+            UnitInstanceState unit = null;
             if (anchorChanged && unitInstanceIdsByView.TryGetValue(draggedUnitView, out string unitInstanceId))
             {
-                UnitInstanceState unit = director.State.FindUnit(unitInstanceId);
+                unit = director.State.FindUnit(unitInstanceId);
                 if (unit != null && TryApplySmartPreviewRotation(unit, clampedCell, board))
                 {
                     draggedUnitView.transform.rotation = Quaternion.Euler(
@@ -2050,8 +2061,25 @@ namespace MochiPark.Runtime.Views
                 }
             }
 
+            if (unit == null && unitInstanceIdsByView.TryGetValue(draggedUnitView, out string draggedUnitInstanceId))
+            {
+                unit = director.State.FindUnit(draggedUnitInstanceId);
+            }
+
             RefreshSelectionPreviewSprites();
-            PositionUnitOnSurface(draggedUnitView, board.CellToWorldSurface(clampedCell));
+            if (unit != null)
+            {
+                PositionUnitForFootprint(
+                    draggedUnitView,
+                    board,
+                    unit.Definition,
+                    clampedCell,
+                    GetSelectedUnitPreviewRotation(unit));
+            }
+            else
+            {
+                PositionUnitOnSurface(draggedUnitView, board.CellToWorldSurface(clampedCell));
+            }
         }
 
         private void EndUnitDrag(Vector2 screenPosition)
@@ -2098,7 +2126,12 @@ namespace MochiPark.Runtime.Views
             }
 
             GridRotation targetRotation = GetSelectedUnitPreviewRotation(unit);
-            PositionUnitOnSurface(releasedUnitView, board.CellToWorldSurface(clampedTargetCell));
+            PositionUnitForFootprint(
+                releasedUnitView,
+                board,
+                unit.Definition,
+                clampedTargetCell,
+                targetRotation);
 
             PlacementResult placement = director.PlacementSystem.CanPlace(
                 unit.Definition,
@@ -2216,7 +2249,12 @@ namespace MochiPark.Runtime.Views
             if (selectedUnitView != null)
             {
                 selectedUnitView.transform.rotation = Quaternion.Euler(0f, (int)unit.Rotation * 90f, 0f);
-                PositionUnitOnSurface(selectedUnitView, director.State.Board.CellToWorldSurface(unit.AnchorCell));
+                PositionUnitForFootprint(
+                    selectedUnitView,
+                    director.State.Board,
+                    unit.Definition,
+                    unit.AnchorCell,
+                    unit.Rotation);
             }
 
             RefreshSelectionPreviewSprites();
@@ -2477,6 +2515,85 @@ namespace MochiPark.Runtime.Views
 
             unitView.transform.position = surfacePosition;
             unitView.transform.position += Vector3.up * GetUnitSurfaceOffset(unitView, surfacePosition.y);
+        }
+
+        private static void PositionUnitForFootprint(
+            GameObject unitView,
+            RuntimeBoardState board,
+            UnitDefinitionSO unitDefinition,
+            Vector2Int anchorCell,
+            GridRotation rotation)
+        {
+            if (unitView == null || board == null || unitDefinition == null)
+            {
+                return;
+            }
+
+            if (!TryGetFootprintWorldArea(
+                    board,
+                    unitDefinition.FootprintPattern,
+                    anchorCell,
+                    rotation,
+                    out Vector3 footprintCenter,
+                    out _))
+            {
+                PositionUnitOnSurface(unitView, board.CellToWorldSurface(anchorCell));
+                return;
+            }
+
+            if (!TryGetUnitVisualBounds(unitView, out Bounds bounds))
+            {
+                unitView.transform.position = footprintCenter + Vector3.up * DefaultUnitHeightOffset;
+                return;
+            }
+
+            Vector3 visualBaseCenter = new Vector3(bounds.center.x, bounds.min.y, bounds.center.z);
+            unitView.transform.position += footprintCenter - visualBaseCenter;
+        }
+
+        private static bool TryGetFootprintWorldArea(
+            RuntimeBoardState board,
+            PatternDefinitionSO footprintPattern,
+            Vector2Int anchorCell,
+            GridRotation rotation,
+            out Vector3 center,
+            out Vector2Int tileDimensions)
+        {
+            center = default;
+            tileDimensions = Vector2Int.zero;
+            if (board == null || footprintPattern == null)
+            {
+                return false;
+            }
+
+            List<Vector2Int> footprintCells = GridRotationUtility.ResolveCells(
+                footprintPattern,
+                anchorCell,
+                rotation);
+            if (footprintCells.Count == 0)
+            {
+                return false;
+            }
+
+            int minX = footprintCells[0].x;
+            int maxX = minX;
+            int minY = footprintCells[0].y;
+            int maxY = minY;
+            for (int i = 1; i < footprintCells.Count; i++)
+            {
+                Vector2Int cell = footprintCells[i];
+                minX = Mathf.Min(minX, cell.x);
+                maxX = Mathf.Max(maxX, cell.x);
+                minY = Mathf.Min(minY, cell.y);
+                maxY = Mathf.Max(maxY, cell.y);
+            }
+
+            center = new Vector3(
+                (minX + maxX) * 0.5f * board.TileSizeXZ,
+                board.TileSurfaceY,
+                (minY + maxY) * 0.5f * board.TileSizeXZ);
+            tileDimensions = new Vector2Int(maxX - minX + 1, maxY - minY + 1);
+            return true;
         }
 
         private static float GetUnitSurfaceOffset(GameObject unitView, float surfaceY)
@@ -3068,9 +3185,30 @@ namespace MochiPark.Runtime.Views
                 return;
             }
 
-            Vector3 vfxPosition = director.State.Board.CellToWorldSurface(unitAnchorCell);
+            RuntimeBoardState board = director.State.Board;
+            Vector3 vfxPosition = board.CellToWorldSurface(unitAnchorCell);
+            Vector2Int footprintDimensions = Vector2Int.one;
+            UnitInstanceState unit = director.State.FindUnit(unitInstanceId);
+            if (unit != null &&
+                TryGetFootprintWorldArea(
+                    board,
+                    unit.Definition.FootprintPattern,
+                    unitAnchorCell,
+                    unit.Rotation,
+                    out Vector3 footprintCenter,
+                    out Vector2Int resolvedDimensions))
+            {
+                vfxPosition = footprintCenter;
+                footprintDimensions = resolvedDimensions;
+            }
+
             GameObject vfx = Instantiate(vfxPrefab, vfxPosition, Quaternion.identity);
             vfx.name = $"{unitInstanceId} Trigger VFX";
+            Vector3 prefabScale = vfx.transform.localScale;
+            vfx.transform.localScale = new Vector3(
+                prefabScale.x * Mathf.Max(1, footprintDimensions.x),
+                prefabScale.y,
+                prefabScale.z * Mathf.Max(1, footprintDimensions.y));
             vfx.transform.SetParent(vfxRoot, true);
             Destroy(vfx, MochiUnitTriggeredVfxLifetime);
         }
@@ -3254,9 +3392,21 @@ namespace MochiPark.Runtime.Views
                 return false;
             }
 
+            RuntimeBoardState board = director.State.Board;
             Vector2Int anchorCell = GetSelectedUnitPreviewAnchor(unit);
-            worldPosition = director.State.Board.CellToWorldSurface(anchorCell) +
-                Vector3.up * DefaultUnitHeightOffset;
+            GridRotation rotation = GetSelectedUnitPreviewRotation(unit);
+            if (!TryGetFootprintWorldArea(
+                    board,
+                    unit.Definition.FootprintPattern,
+                    anchorCell,
+                    rotation,
+                    out worldPosition,
+                    out _))
+            {
+                worldPosition = board.CellToWorldSurface(anchorCell);
+            }
+
+            worldPosition += Vector3.up * DefaultUnitHeightOffset;
             return true;
         }
 
