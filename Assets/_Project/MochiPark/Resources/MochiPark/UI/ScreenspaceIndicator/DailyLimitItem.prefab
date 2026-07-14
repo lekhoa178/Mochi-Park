@@ -66,6 +66,9 @@ MonoBehaviour:
   indicatorRoot: {fileID: 547060403700629594}
   indicatorText: {fileID: 2086069484620798139}
   textFormat: '{0}'
+  screenSizeMode: 1
+  referenceWorldSize: 2
+  referenceScreenSize: 200
   addScaleCurve:
     serializedVersion: 2
     m_Curve:

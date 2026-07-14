@@ -132,15 +132,25 @@ namespace MochiPark.Runtime.Views
                 return false;
             }
 
-            anchoredPosition += anchoredOffset;
-
             ScreenspaceIndicatorViewItem item = GetOrCreateItem(key, itemPrefab);
             if (item == null)
             {
                 return false;
             }
 
-            item.SetText(text, anchoredPosition);
+            float sizeScale = 1f;
+            if (item.SizingMode == ScreenspaceIndicatorViewItem.ScreenSizeMode.CameraDistanceResponsive)
+            {
+                if (!TryCalculateCameraDistanceScale(worldCamera, worldPosition, item, out sizeScale))
+                {
+                    return false;
+                }
+
+                anchoredOffset *= sizeScale;
+            }
+
+            anchoredPosition += anchoredOffset;
+            item.SetText(text, anchoredPosition, sizeScale);
             item.ShowAnimated();
             return true;
         }
@@ -523,6 +533,63 @@ namespace MochiPark.Runtime.Views
             }
 
             return converted;
+        }
+
+        private bool TryCalculateCameraDistanceScale(
+            Camera worldCamera,
+            Vector3 worldPosition,
+            ScreenspaceIndicatorViewItem item,
+            out float sizeScale)
+        {
+            float halfWorldSize = item.ReferenceWorldSize * 0.5f;
+            Vector3 rightOffset = Vector3.right * halfWorldSize;
+            Vector3 forwardOffset = Vector3.forward * halfWorldSize;
+            float minX = float.PositiveInfinity;
+            float maxX = float.NegativeInfinity;
+            if (!TryIncludeProjectedCorner(
+                    worldCamera,
+                    worldPosition - rightOffset - forwardOffset,
+                    ref minX,
+                    ref maxX) ||
+                !TryIncludeProjectedCorner(
+                    worldCamera,
+                    worldPosition - rightOffset + forwardOffset,
+                    ref minX,
+                    ref maxX) ||
+                !TryIncludeProjectedCorner(
+                    worldCamera,
+                    worldPosition + rightOffset - forwardOffset,
+                    ref minX,
+                    ref maxX) ||
+                !TryIncludeProjectedCorner(
+                    worldCamera,
+                    worldPosition + rightOffset + forwardOffset,
+                    ref minX,
+                    ref maxX))
+            {
+                sizeScale = 1f;
+                return false;
+            }
+
+            sizeScale = Mathf.Max(0f, maxX - minX) / item.ReferenceScreenSize;
+            return sizeScale > Mathf.Epsilon;
+        }
+
+        private bool TryIncludeProjectedCorner(
+            Camera worldCamera,
+            Vector3 worldCorner,
+            ref float minX,
+            ref float maxX)
+        {
+            Vector3 screenCorner = worldCamera.WorldToScreenPoint(worldCorner);
+            if (screenCorner.z <= 0f || !TryConvertScreenToLocal(screenCorner, out Vector2 localCorner))
+            {
+                return false;
+            }
+
+            minX = Mathf.Min(minX, localCorner.x);
+            maxX = Mathf.Max(maxX, localCorner.x);
+            return true;
         }
 
         private Camera GetCanvasEventCamera()

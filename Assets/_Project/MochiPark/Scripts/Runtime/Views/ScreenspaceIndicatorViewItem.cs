@@ -9,6 +9,12 @@ namespace MochiPark.Runtime.Views
     [RequireComponent(typeof(RectTransform))]
     public sealed class ScreenspaceIndicatorViewItem : MonoBehaviour
     {
+        public enum ScreenSizeMode
+        {
+            FixedToScreen,
+            CameraDistanceResponsive
+        }
+
         private enum ScaleAnimationKind
         {
             None,
@@ -25,6 +31,11 @@ namespace MochiPark.Runtime.Views
         [SerializeField] private TMP_Text indicatorText;
         [FormerlySerializedAs("amountFormat")]
         [SerializeField] private string textFormat = "{0}";
+        [SerializeField] private ScreenSizeMode screenSizeMode = ScreenSizeMode.FixedToScreen;
+        [SerializeField, Min(0.01f), Tooltip("World-space tile width represented by Reference Screen Size.")]
+        private float referenceWorldSize = 2f;
+        [SerializeField, Min(0.01f), Tooltip("UI width that Reference World Size occupies when this item has scale 1.")]
+        private float referenceScreenSize = 200f;
         [SerializeField] private AnimationCurve addScaleCurve = new AnimationCurve(
             new Keyframe(0f, 0f),
             new Keyframe(0.68f, 1.1f),
@@ -36,14 +47,25 @@ namespace MochiPark.Runtime.Views
 
         private Coroutine scaleCoroutine;
         private ScaleAnimationKind scaleAnimationKind;
+        private float screenSizeScale = 1f;
+
+        public ScreenSizeMode SizingMode => screenSizeMode;
+        public float ReferenceWorldSize => Mathf.Max(0.01f, referenceWorldSize);
+        public float ReferenceScreenSize => Mathf.Max(0.01f, referenceScreenSize);
 
         public void SetText(string text, Vector2 anchoredPosition)
+        {
+            SetText(text, anchoredPosition, 1f);
+        }
+
+        public void SetText(string text, Vector2 anchoredPosition, float sizeScale)
         {
             if (!ValidateReferences())
             {
                 return;
             }
 
+            screenSizeScale = Mathf.Max(0f, sizeScale);
             indicatorRoot.anchoredPosition = anchoredPosition;
             indicatorText.text = string.Format(CultureInfo.InvariantCulture, ResolveTextFormat(), text);
         }
@@ -70,13 +92,13 @@ namespace MochiPark.Runtime.Views
 
             if (shouldPlayAddAnimation)
             {
-                indicatorRoot.localScale = Vector3.zero;
+                ApplyScale(0f);
                 scaleAnimationKind = ScaleAnimationKind.Showing;
                 scaleCoroutine = StartCoroutine(TweenScale(addScaleCurve, AddScaleDuration, null));
                 return;
             }
 
-            indicatorRoot.localScale = Vector3.one;
+            ApplyScale(1f);
             scaleAnimationKind = ScaleAnimationKind.None;
         }
 
@@ -113,7 +135,7 @@ namespace MochiPark.Runtime.Views
             scaleAnimationKind = ScaleAnimationKind.None;
             if (indicatorRoot != null)
             {
-                indicatorRoot.localScale = Vector3.zero;
+                ApplyScale(0f);
             }
 
             gameObject.SetActive(false);
@@ -124,7 +146,7 @@ namespace MochiPark.Runtime.Views
             AnimationCurve resolvedCurve = ResolveScaleCurve(scaleCurve);
             if (duration <= Mathf.Epsilon)
             {
-                indicatorRoot.localScale = Vector3.one * resolvedCurve.Evaluate(1f);
+                ApplyScale(resolvedCurve.Evaluate(1f));
                 scaleCoroutine = null;
                 scaleAnimationKind = ScaleAnimationKind.None;
                 completed?.Invoke();
@@ -136,14 +158,19 @@ namespace MochiPark.Runtime.Views
             {
                 elapsed += Time.unscaledDeltaTime;
                 float t = Mathf.Clamp01(elapsed / duration);
-                indicatorRoot.localScale = Vector3.one * Mathf.Max(0f, resolvedCurve.Evaluate(t));
+                ApplyScale(resolvedCurve.Evaluate(t));
                 yield return null;
             }
 
-            indicatorRoot.localScale = Vector3.one * Mathf.Max(0f, resolvedCurve.Evaluate(1f));
+            ApplyScale(resolvedCurve.Evaluate(1f));
             scaleCoroutine = null;
             scaleAnimationKind = ScaleAnimationKind.None;
             completed?.Invoke();
+        }
+
+        private void ApplyScale(float animationScale)
+        {
+            indicatorRoot.localScale = Vector3.one * (screenSizeScale * Mathf.Max(0f, animationScale));
         }
 
         private static AnimationCurve ResolveScaleCurve(AnimationCurve scaleCurve)
@@ -189,6 +216,8 @@ namespace MochiPark.Runtime.Views
 
         private void OnValidate()
         {
+            referenceWorldSize = Mathf.Max(0.01f, referenceWorldSize);
+            referenceScreenSize = Mathf.Max(0.01f, referenceScreenSize);
             ValidateReferences();
         }
     }
