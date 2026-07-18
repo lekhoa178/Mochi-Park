@@ -21,6 +21,7 @@ namespace MochiPark.Runtime.Views
         private const float BuildableSpriteSelectionFadeDuration = 0.18f;
         private const float UnitPickRayDistance = 1000f;
         private const float DragStartScreenDistance = 8f;
+        private const float DefaultUnitDragSmoothTime = 0.08f;
         private const float DefaultVisitorHeightOffset = 0.55f;
         private const float VisitorMinimumMoveSpeed = 0.01f;
         private const float VisitorReachedTileCenterDistance = 0.01f;
@@ -102,6 +103,7 @@ namespace MochiPark.Runtime.Views
         private Vector2Int selectedUnitPreviewAnchorCell;
         private GridRotation selectedUnitPreviewRotation;
         private Vector2 pressScreenPosition;
+        private Vector3 draggedUnitVisualVelocity;
         private Coroutine buildableSpriteFadeCoroutine;
         private float buildableSpriteFadeAlpha = 1f;
         private int activePointerId = MousePointerId;
@@ -115,6 +117,9 @@ namespace MochiPark.Runtime.Views
         private bool isCountdownIntroPlaying;
         private bool hasPlayedCountdownIntro;
         private bool isDraftSuppressedForUnitDrag;
+
+        [Header("Unit Drag")]
+        [SerializeField, Min(0f)] private float unitDragSmoothTime = DefaultUnitDragSmoothTime;
 
         [Header("Scene Loading")]
         [SerializeField] private string lobbySceneName = DefaultLobbySceneName;
@@ -402,6 +407,7 @@ namespace MochiPark.Runtime.Views
             }
 
             draggedUnitView = unitView;
+            draggedUnitVisualVelocity = Vector3.zero;
             activePointerId = pointerId;
             ClearPressedUnitState();
             screenspaceIndicatorView?.HideEditPanel();
@@ -2024,6 +2030,7 @@ namespace MochiPark.Runtime.Views
             }
 
             draggedUnitView = pressedUnitView;
+            draggedUnitVisualVelocity = Vector3.zero;
             activePointerId = pressedPointerId;
             ClearPressedUnitState();
             SetDraftSuppressedForUnitDrag(true);
@@ -2039,12 +2046,17 @@ namespace MochiPark.Runtime.Views
             }
 
             RuntimeBoardState board = director.State.Board;
-            if (!cameraController.TryScreenToBoardCell(screenPosition, board, out Vector2Int cell, out _))
+            if (!cameraController.TryScreenToBoardCell(
+                    screenPosition,
+                    board,
+                    out Vector2Int cell,
+                    out Vector3 surfacePoint))
             {
                 return;
             }
 
             Vector2Int clampedCell = ClampCellToBoard(board, cell);
+            bool isPointerOutsideBoard = cell != clampedCell;
             bool anchorChanged = !hasSelectedUnitPreviewAnchor || selectedUnitPreviewAnchorCell != clampedCell;
             selectedUnitPreviewAnchorCell = clampedCell;
             hasSelectedUnitPreviewAnchor = true;
@@ -2067,8 +2079,13 @@ namespace MochiPark.Runtime.Views
             }
 
             RefreshSelectionPreviewSprites();
-            if (unit != null)
+            if (!isPointerOutsideBoard)
             {
+                SmoothPositionDraggedUnitOnSurface(draggedUnitView, surfacePoint);
+            }
+            else if (unit != null)
+            {
+                draggedUnitVisualVelocity = Vector3.zero;
                 PositionUnitForFootprint(
                     draggedUnitView,
                     board,
@@ -2078,6 +2095,7 @@ namespace MochiPark.Runtime.Views
             }
             else
             {
+                draggedUnitVisualVelocity = Vector3.zero;
                 PositionUnitOnSurface(draggedUnitView, board.CellToWorldSurface(clampedCell));
             }
         }
@@ -2163,6 +2181,7 @@ namespace MochiPark.Runtime.Views
         private void ClearDragState()
         {
             draggedUnitView = null;
+            draggedUnitVisualVelocity = Vector3.zero;
             activePointerId = MousePointerId;
             SetDraftSuppressedForUnitDrag(false);
         }
@@ -2515,6 +2534,38 @@ namespace MochiPark.Runtime.Views
 
             unitView.transform.position = surfacePosition;
             unitView.transform.position += Vector3.up * GetUnitSurfaceOffset(unitView, surfacePosition.y);
+        }
+
+        private void SmoothPositionDraggedUnitOnSurface(GameObject unitView, Vector3 surfacePosition)
+        {
+            if (unitView == null)
+            {
+                return;
+            }
+
+            Vector3 targetPosition;
+            if (TryGetUnitVisualBounds(unitView, out Bounds bounds))
+            {
+                Vector3 visualBaseCenter = new Vector3(bounds.center.x, bounds.min.y, bounds.center.z);
+                targetPosition = unitView.transform.position + surfacePosition - visualBaseCenter;
+            }
+            else
+            {
+                targetPosition = surfacePosition + Vector3.up * DefaultUnitHeightOffset;
+            }
+
+            if (unitDragSmoothTime <= 0f)
+            {
+                draggedUnitVisualVelocity = Vector3.zero;
+                unitView.transform.position = targetPosition;
+                return;
+            }
+
+            unitView.transform.position = Vector3.SmoothDamp(
+                unitView.transform.position,
+                targetPosition,
+                ref draggedUnitVisualVelocity,
+                unitDragSmoothTime);
         }
 
         private static void PositionUnitForFootprint(
