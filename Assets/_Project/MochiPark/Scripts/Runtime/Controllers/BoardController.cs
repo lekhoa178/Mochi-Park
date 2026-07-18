@@ -2400,6 +2400,7 @@ namespace MochiPark.Runtime.Views
         private void SelectUnit(GameObject unitView, string unitInstanceId)
         {
             ClearHoveredUnit();
+            PlayUnitReleaseBounce(unitInstanceId, unitView);
             if (selectedUnitView == unitView)
             {
                 RefreshSelectionPreviewSprites();
