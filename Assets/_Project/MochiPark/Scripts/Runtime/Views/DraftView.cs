@@ -47,11 +47,17 @@ namespace MochiPark.Runtime.Views
         private CanvasGroup draftCanvasGroup;
         private Coroutine tweenCoroutine;
         private Vector2 shownAnchoredPosition;
+        private int selectedCardIndex = -1;
+        private int draggedCardIndex = -1;
+        private int draggedCardPointerId;
         private bool hasCachedShownPosition;
         private bool isOpen;
         private bool isSuppressed;
+        private bool hasDraftCardDrag;
+        private bool hasStartedDraftCardPlacement;
 
         public event Action<int> DraftCardSelected;
+        public event Action<int> DraftCardActivated;
         public event Action<int, Vector2, int> DraftCardDragStarted;
         public event Action<int, Vector2, int> DraftCardDragged;
         public event Action<int, Vector2, int> DraftCardDragEnded;
@@ -81,15 +87,39 @@ namespace MochiPark.Runtime.Views
             eventBus = null;
             state = null;
             DraftCardSelected = null;
+            DraftCardActivated = null;
             DraftCardDragStarted = null;
             DraftCardDragged = null;
             DraftCardDragEnded = null;
             SkipRequested = null;
+            ClearDraftCardDrag();
+            ClearDraftCardSelection();
+        }
+
+        public void SelectCard(int cardIndex)
+        {
+            DraftOfferState offer = state != null && state.Draft != null
+                ? state.Draft.ActiveOffer
+                : null;
+            if (offer == null || cardIndex < 0 || cardIndex >= offer.UnitTypeIds.Count)
+            {
+                return;
+            }
+
+            if (selectedCardIndex == cardIndex)
+            {
+                DraftCardActivated?.Invoke(cardIndex);
+                return;
+            }
+
+            selectedCardIndex = cardIndex;
+            DraftCardSelected?.Invoke(cardIndex);
         }
 
         public void Close()
         {
             ResolveReferences();
+            ClearDraftCardSelection();
             if (draftPanel == null)
             {
                 return;
@@ -254,6 +284,7 @@ namespace MochiPark.Runtime.Views
 
         private void RefreshOffer(DraftOfferState offer)
         {
+            ClearDraftCardSelection();
             RefreshDraftRemain();
             EnsureItemPool(offer.UnitTypeIds.Count);
 
@@ -342,6 +373,7 @@ namespace MochiPark.Runtime.Views
 
         private void SetHiddenImmediate()
         {
+            ClearDraftCardSelection();
             if (draftPanel == null)
             {
                 return;
@@ -439,22 +471,93 @@ namespace MochiPark.Runtime.Views
 
         private void OnDraftItemClicked(int cardIndex)
         {
-            DraftCardSelected?.Invoke(cardIndex);
+            SelectCard(cardIndex);
         }
 
         private void OnDraftItemDragStarted(int cardIndex, Vector2 screenPosition, int pointerId)
         {
-            DraftCardDragStarted?.Invoke(cardIndex, screenPosition, pointerId);
+            draggedCardIndex = cardIndex;
+            draggedCardPointerId = pointerId;
+            hasDraftCardDrag = true;
+            hasStartedDraftCardPlacement = false;
         }
 
         private void OnDraftItemDragged(int cardIndex, Vector2 screenPosition, int pointerId)
         {
+            if (!IsCurrentDraftCardDrag(cardIndex, pointerId))
+            {
+                return;
+            }
+
+            if (!hasStartedDraftCardPlacement)
+            {
+                if (IsInsideDraftPanel(screenPosition))
+                {
+                    return;
+                }
+
+                hasStartedDraftCardPlacement = true;
+                ClearDraftCardSelection();
+                DraftCardDragStarted?.Invoke(cardIndex, screenPosition, pointerId);
+            }
+
             DraftCardDragged?.Invoke(cardIndex, screenPosition, pointerId);
         }
 
         private void OnDraftItemDragEnded(int cardIndex, Vector2 screenPosition, int pointerId)
         {
-            DraftCardDragEnded?.Invoke(cardIndex, screenPosition, pointerId);
+            if (!IsCurrentDraftCardDrag(cardIndex, pointerId))
+            {
+                return;
+            }
+
+            if (!hasStartedDraftCardPlacement && !IsInsideDraftPanel(screenPosition))
+            {
+                hasStartedDraftCardPlacement = true;
+                ClearDraftCardSelection();
+                DraftCardDragStarted?.Invoke(cardIndex, screenPosition, pointerId);
+            }
+
+            if (hasStartedDraftCardPlacement)
+            {
+                DraftCardDragEnded?.Invoke(cardIndex, screenPosition, pointerId);
+            }
+
+            ClearDraftCardDrag();
+        }
+
+        private bool IsCurrentDraftCardDrag(int cardIndex, int pointerId)
+        {
+            return hasDraftCardDrag &&
+                draggedCardIndex == cardIndex &&
+                draggedCardPointerId == pointerId;
+        }
+
+        private bool IsInsideDraftPanel(Vector2 screenPosition)
+        {
+            if (draftPanel == null)
+            {
+                return false;
+            }
+
+            Canvas canvas = draftPanel.GetComponentInParent<Canvas>();
+            Camera eventCamera = canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay
+                ? canvas.worldCamera
+                : null;
+            return RectTransformUtility.RectangleContainsScreenPoint(draftPanel, screenPosition, eventCamera);
+        }
+
+        private void ClearDraftCardSelection()
+        {
+            selectedCardIndex = -1;
+        }
+
+        private void ClearDraftCardDrag()
+        {
+            draggedCardIndex = -1;
+            draggedCardPointerId = 0;
+            hasDraftCardDrag = false;
+            hasStartedDraftCardPlacement = false;
         }
 
         private void EnsureItemPool(int count)

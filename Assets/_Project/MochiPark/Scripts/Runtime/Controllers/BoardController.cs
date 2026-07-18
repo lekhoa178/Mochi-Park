@@ -237,7 +237,7 @@ namespace MochiPark.Runtime.Views
                 pressedUnitView == null &&
                 TryGetPressedDraftCardIndex(keyboard, out int draftCardIndex))
             {
-                SelectDraftCard(draftCardIndex);
+                draftView?.SelectCard(draftCardIndex);
                 return;
             }
 
@@ -302,6 +302,7 @@ namespace MochiPark.Runtime.Views
             if (draftView != null)
             {
                 draftView.DraftCardSelected -= SelectDraftCard;
+                draftView.DraftCardActivated -= ActivateDraftCard;
                 draftView.DraftCardDragStarted -= OnDraftCardDragStarted;
                 draftView.DraftCardDragged -= OnDraftCardDragged;
                 draftView.DraftCardDragEnded -= OnDraftCardDragEnded;
@@ -389,6 +390,34 @@ namespace MochiPark.Runtime.Views
         }
 
         private void SelectDraftCard(int cardIndex)
+        {
+            if (!CanEditBoard() ||
+                director == null ||
+                director.State == null ||
+                director.State.Draft == null ||
+                director.State.Draft.ActiveOffer == null)
+            {
+                return;
+            }
+
+            IReadOnlyList<string> unitTypeIds = director.State.Draft.ActiveOffer.UnitTypeIds;
+            if (cardIndex < 0 ||
+                cardIndex >= unitTypeIds.Count ||
+                !director.TryGetUnitDefinition(unitTypeIds[cardIndex], out UnitDefinitionSO unitDefinition))
+            {
+                return;
+            }
+
+            if (selectedUnitView != null)
+            {
+                DeselectUnit();
+            }
+
+            HudView hud = hudView != null ? hudView : GetOrCreateHudView();
+            hud?.ShowUnitDetail(unitDefinition);
+        }
+
+        private void ActivateDraftCard(int cardIndex)
         {
             TrySelectDraftCard(cardIndex, true, out _);
         }
@@ -481,6 +510,7 @@ namespace MochiPark.Runtime.Views
 
             director.SkipDraftForDay();
             draftView?.Close();
+            HideUnitDetailPanel();
         }
 
         private void ConfirmSelectedUnitEdit()
@@ -4358,6 +4388,8 @@ namespace MochiPark.Runtime.Views
 
             draftView.DraftCardSelected -= SelectDraftCard;
             draftView.DraftCardSelected += SelectDraftCard;
+            draftView.DraftCardActivated -= ActivateDraftCard;
+            draftView.DraftCardActivated += ActivateDraftCard;
             draftView.DraftCardDragStarted -= OnDraftCardDragStarted;
             draftView.DraftCardDragStarted += OnDraftCardDragStarted;
             draftView.DraftCardDragged -= OnDraftCardDragged;
