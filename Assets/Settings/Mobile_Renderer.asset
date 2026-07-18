@@ -62,7 +62,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 205da37c111721141bf362ab8ea1a7a6, type: 3}
   m_Name: Mochi Screen-Space Unit Outline
-  m_EditorClassIdentifier: 
+  m_EditorClassIdentifier:
   m_Active: 1
   settings:
     selectedColor: {r: 0.969, g: 1, b: 0, a: 1}
