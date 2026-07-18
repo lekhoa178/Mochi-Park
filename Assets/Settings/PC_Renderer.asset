@@ -86,7 +86,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: de640fe3d0db1804a85f9fc8f5cadab6, type: 3}
   m_Name: PC_Renderer
-  m_EditorClassIdentifier: 
+  m_EditorClassIdentifier:
   debugShaders:
     debugReplacementPS: {fileID: 4800000, guid: cf852408f2e174538bcd9b7fda1c5ae7, type: 3}
     hdrDebugViewPS: {fileID: 4800000, guid: 573620ae32aec764abd4d728906d2587, type: 3}
@@ -104,6 +104,7 @@ MonoBehaviour:
   - {fileID: -7960155907305381444}
   - {fileID: -4166209006856134051}
   - {fileID: -2890895035719277917}
+  - {fileID: 812345678901234567}
   m_RendererFeatureMap: ad6b866f10d7b46ce20562ba1d5b049f5da24e56fba62ec6a3220319487ae1d7
   xrSystemData: {fileID: 0}
   postProcessData: {fileID: 11400000, guid: 41439944d30ece34e96484bdb6645b55, type: 2}
@@ -159,3 +160,22 @@ MonoBehaviour:
     BlurQuality: 0
     Falloff: 100
     SampleCount: -1
+--- !u!114 &812345678901234567
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 205da37c111721141bf362ab8ea1a7a6, type: 3}
+  m_Name: Mochi Screen-Space Unit Outline
+  m_EditorClassIdentifier: 
+  m_Active: 1
+  settings:
+    selectedColor: {r: 0.969, g: 1, b: 0, a: 1}
+    hoveredColor: {r: 1, g: 1, b: 1, a: 1}
+    thicknessPixels: 6
+    smoothnessPixels: 1.25
+    showInSceneView: 0
