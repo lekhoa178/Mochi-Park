@@ -1499,7 +1499,7 @@ namespace MochiPark.Runtime.Views
                 return false;
             }
 
-            if (!TryFindBestValidRotation(
+            if (!TryFindBestRotation(
                 unit,
                 footprintCenterWorld,
                 board,
@@ -1516,7 +1516,7 @@ namespace MochiPark.Runtime.Views
             return true;
         }
 
-        private bool TryFindBestValidRotation(
+        private static bool TryFindBestRotation(
             UnitInstanceState unit,
             Vector3 footprintCenterWorld,
             RuntimeBoardState board,
@@ -1528,9 +1528,7 @@ namespace MochiPark.Runtime.Views
             bestAnchorCell = default;
             if (unit == null ||
                 unit.Definition == null ||
-                board == null ||
-                director == null ||
-                director.PlacementSystem == null)
+                board == null)
             {
                 return false;
             }
@@ -1547,15 +1545,6 @@ namespace MochiPark.Runtime.Views
                     unit.Definition.FootprintPattern,
                     candidateRotation,
                     footprintCenterWorld);
-
-                if (!director.PlacementSystem.CanPlace(
-                    unit.Definition,
-                    candidateAnchorCell,
-                    candidateRotation,
-                    unit.InstanceId).IsValid)
-                {
-                    continue;
-                }
 
                 int affectedPathCells = CountAffectedPathCells(
                     unit.Definition,
