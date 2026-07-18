@@ -21,12 +21,6 @@ MonoBehaviour:
   tags: 03000000
   footprintPattern: {fileID: 11400000, guid: 7f100000000000000000000000000103, type: 2}
   influencePatterns:
-  - areaId: buff
-    pattern: {fileID: 11400000, guid: 6b1e0a1f2c3344d89a0000000000000f, type: 2}
-  - areaId: buff_orthogonal
-    pattern: {fileID: 11400000, guid: 7f100000000000000000000000000105, type: 2}
-  - areaId: buff_horizontal
-    pattern: {fileID: 11400000, guid: 7f100000000000000000000000000106, type: 2}
   - areaId: buff_ring
     pattern: {fileID: 11400000, guid: 7f100000000000000000000000000107, type: 2}
   rotationAllowed: 1
