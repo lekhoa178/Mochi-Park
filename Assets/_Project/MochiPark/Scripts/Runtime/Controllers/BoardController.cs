@@ -50,6 +50,7 @@ namespace MochiPark.Runtime.Views
         private static readonly Vector2 EditPanelIndicatorScreenOffset = new Vector2(0f, -90f);
         private static readonly int MaterialBaseColorId = Shader.PropertyToID("_BaseColor");
         private static readonly int MaterialColorId = Shader.PropertyToID("_Color");
+        private static readonly int OutlineColorId = Shader.PropertyToID("_OutlineColor");
         private readonly Dictionary<string, GameObject> visitorViews = new Dictionary<string, GameObject>();
         private readonly Dictionary<string, float> visitorSurfaceOffsets = new Dictionary<string, float>();
         private readonly Dictionary<string, Coroutine> visitorMoveCoroutines = new Dictionary<string, Coroutine>();
@@ -108,6 +109,9 @@ namespace MochiPark.Runtime.Views
         private GameObject pressedUnitView;
         private GameObject selectedUnitView;
         private UnitOutlineSelectionState selectedOutlineState;
+        private GameObject hoveredUnitView;
+        private UnitOutlineSelectionState hoveredOutlineState;
+        private Material hoveredOutlineMaterial;
         private string selectedUnitInstanceId;
         private Vector2Int selectedUnitPreviewAnchorCell;
         private GridRotation selectedUnitPreviewRotation;
@@ -177,13 +181,17 @@ namespace MochiPark.Runtime.Views
         {
             if (director == null || director.State == null)
             {
+                ClearHoveredUnit();
                 return;
             }
 
             if (!CanEditBoard())
             {
+                ClearHoveredUnit();
                 return;
             }
+
+            RefreshHoveredUnit();
 
             Keyboard keyboard = Keyboard.current;
             if (keyboard != null && keyboard.xKey.wasPressedThisFrame)
@@ -283,6 +291,13 @@ namespace MochiPark.Runtime.Views
         private void OnDestroy()
         {
             isOpeningPark = false;
+            ClearHoveredUnit();
+            if (hoveredOutlineMaterial != null)
+            {
+                Destroy(hoveredOutlineMaterial);
+                hoveredOutlineMaterial = null;
+            }
+
             StopUnitReleaseBounces();
             StopCountdownIntro(true);
             StopFrenzyMomentVfx(true);
@@ -1758,6 +1773,7 @@ namespace MochiPark.Runtime.Views
 
         private void RefreshUnits()
         {
+            ClearHoveredUnit();
             RestoreSelectedOutline();
             StopUnitReleaseBounces();
 
@@ -2383,6 +2399,7 @@ namespace MochiPark.Runtime.Views
 
         private void SelectUnit(GameObject unitView, string unitInstanceId)
         {
+            ClearHoveredUnit();
             if (selectedUnitView == unitView)
             {
                 RefreshSelectionPreviewSprites();
@@ -2457,8 +2474,12 @@ namespace MochiPark.Runtime.Views
 
         private UnitOutlineSelectionState ApplySelectedOutline(GameObject unitView)
         {
-            Material selectedMaterial = GetMochiUnitSelectedMaterial();
-            if (selectedMaterial == null)
+            return ApplyUnitOutline(unitView, GetMochiUnitSelectedMaterial());
+        }
+
+        private static UnitOutlineSelectionState ApplyUnitOutline(GameObject unitView, Material outlineMaterial)
+        {
+            if (unitView == null || outlineMaterial == null)
             {
                 return new UnitOutlineSelectionState(System.Array.Empty<MeshRenderer>(), System.Array.Empty<Material[]>());
             }
@@ -2471,14 +2492,14 @@ namespace MochiPark.Runtime.Views
             {
                 MeshRenderer renderer = renderers[i];
                 Material[] materials = renderer.sharedMaterials;
-                if (ContainsMaterial(materials, selectedMaterial))
+                if (ContainsMaterial(materials, outlineMaterial))
                 {
                     continue;
                 }
 
                 Material[] updatedMaterials = new Material[materials.Length + 1];
                 materials.CopyTo(updatedMaterials, 0);
-                updatedMaterials[updatedMaterials.Length - 1] = selectedMaterial;
+                updatedMaterials[updatedMaterials.Length - 1] = outlineMaterial;
                 renderer.sharedMaterials = updatedMaterials;
 
                 selectedRenderers.Add(renderer);
@@ -2490,21 +2511,93 @@ namespace MochiPark.Runtime.Views
 
         private void RestoreSelectedOutline()
         {
-            if (selectedOutlineState == null)
+            RestoreUnitOutline(selectedOutlineState);
+            selectedOutlineState = null;
+        }
+
+        private static void RestoreUnitOutline(UnitOutlineSelectionState outlineState)
+        {
+            if (outlineState == null)
             {
                 return;
             }
 
-            for (int i = 0; i < selectedOutlineState.Renderers.Length; i++)
+            for (int i = 0; i < outlineState.Renderers.Length; i++)
             {
-                MeshRenderer renderer = selectedOutlineState.Renderers[i];
+                MeshRenderer renderer = outlineState.Renderers[i];
                 if (renderer == null)
                 {
                     continue;
                 }
 
-                renderer.sharedMaterials = selectedOutlineState.OriginalMaterials[i];
+                renderer.sharedMaterials = outlineState.OriginalMaterials[i];
             }
+        }
+
+        private void RefreshHoveredUnit()
+        {
+            Mouse mouse = Mouse.current;
+            if (mouse == null ||
+                draggedUnitView != null ||
+                pressedUnitView != null ||
+                isShovelModeActive ||
+                IsPointerOverUi(MousePointerId) ||
+                !TryGetUnitAtScreenPosition(mouse.position.ReadValue(), out GameObject unitView) ||
+                unitView == selectedUnitView)
+            {
+                ClearHoveredUnit();
+                return;
+            }
+
+            if (hoveredUnitView == unitView)
+            {
+                return;
+            }
+
+            ClearHoveredUnit();
+            Material outlineMaterial = GetMochiUnitHoveredMaterial();
+            if (outlineMaterial == null)
+            {
+                return;
+            }
+
+            hoveredUnitView = unitView;
+            hoveredOutlineState = ApplyUnitOutline(unitView, outlineMaterial);
+        }
+
+        private void ClearHoveredUnit()
+        {
+            RestoreUnitOutline(hoveredOutlineState);
+            hoveredOutlineState = null;
+            hoveredUnitView = null;
+        }
+
+        private Material GetMochiUnitHoveredMaterial()
+        {
+            Material selectedMaterial = GetMochiUnitSelectedMaterial();
+            if (selectedMaterial == null)
+            {
+                return null;
+            }
+
+            if (hoveredOutlineMaterial == null)
+            {
+                hoveredOutlineMaterial = new Material(selectedMaterial)
+                {
+                    name = $"{selectedMaterial.name} (Hover White)"
+                };
+
+                if (hoveredOutlineMaterial.HasProperty(OutlineColorId))
+                {
+                    hoveredOutlineMaterial.SetColor(OutlineColorId, Color.white);
+                }
+                else if (TryGetMaterialColorPropertyId(hoveredOutlineMaterial, out int colorPropertyId))
+                {
+                    hoveredOutlineMaterial.SetColor(colorPropertyId, Color.white);
+                }
+            }
+
+            return hoveredOutlineMaterial;
         }
 
         private Material GetMochiUnitSelectedMaterial()
@@ -2664,7 +2757,6 @@ namespace MochiPark.Runtime.Views
 
             for (int i = 0; i < hits.Length; i++)
             {
-                Debug.Log(hits[i]);
                 if (TryGetUnitViewForCollider(hits[i].collider, out GameObject hitUnitView))
                 {
                     unitView = hitUnitView;
