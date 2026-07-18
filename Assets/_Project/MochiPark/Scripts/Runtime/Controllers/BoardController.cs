@@ -22,6 +22,11 @@ namespace MochiPark.Runtime.Views
         private const float UnitPickRayDistance = 1000f;
         private const float DragStartScreenDistance = 8f;
         private const float DefaultUnitDragSmoothTime = 0.02f;
+        private const float DefaultUnitReleaseBounceMagnitude = 0.25f;
+        private const float DefaultUnitReleaseBounceFrequency = 4.5f;
+        private const float DefaultUnitReleaseBounceMagnitudeDecreaseRatio = 0.48f;
+        private const float DefaultUnitReleaseBounceSquashRatio = 0.35f;
+        private const float DefaultUnitReleaseBounceDuration = 0.15f;
         private const float DefaultVisitorHeightOffset = 0.55f;
         private const float VisitorMinimumMoveSpeed = 0.01f;
         private const float VisitorReachedTileCenterDistance = 0.01f;
@@ -57,6 +62,10 @@ namespace MochiPark.Runtime.Views
         private readonly List<GameObject> unitViews = new List<GameObject>();
         private readonly Dictionary<GameObject, string> unitInstanceIdsByView = new Dictionary<GameObject, string>();
         private readonly Dictionary<string, GameObject> unitViewsByInstanceId = new Dictionary<string, GameObject>();
+        private readonly Dictionary<GameObject, Coroutine> unitReleaseBounceCoroutines =
+            new Dictionary<GameObject, Coroutine>();
+        private readonly Dictionary<GameObject, Vector3> unitReleaseBounceBaseScales =
+            new Dictionary<GameObject, Vector3>();
         private readonly HashSet<string> visibleJoyMultiplierIndicatorKeys = new HashSet<string>();
         private readonly HashSet<string> visibleDailyLimitIndicatorKeys = new HashSet<string>();
         private readonly List<string> joyMultiplierIndicatorRemovalBuffer = new List<string>();
@@ -120,6 +129,20 @@ namespace MochiPark.Runtime.Views
 
         [Header("Unit Drag")]
         [SerializeField, Min(0f)] private float unitDragSmoothTime = DefaultUnitDragSmoothTime;
+
+        [Header("Unit Release Bounce")]
+        [Tooltip("Peak vertical scale offset. 0.16 means 16% larger on the first stretch.")]
+        [SerializeField, Min(0f)] private float unitReleaseBounceMagnitude = DefaultUnitReleaseBounceMagnitude;
+        [Tooltip("Number of complete up/down oscillations per second.")]
+        [SerializeField, Min(0.01f)] private float unitReleaseBounceFrequency = DefaultUnitReleaseBounceFrequency;
+        [Tooltip("Magnitude retained after each complete oscillation. Lower values settle faster.")]
+        [SerializeField, Range(0.01f, 0.99f)] private float unitReleaseBounceMagnitudeDecreaseRatio =
+            DefaultUnitReleaseBounceMagnitudeDecreaseRatio;
+        [Tooltip("How much X/Z compress while Y stretches, creating squash-and-stretch.")]
+        [SerializeField, Range(0f, 1f)] private float unitReleaseBounceSquashRatio =
+            DefaultUnitReleaseBounceSquashRatio;
+        [Tooltip("Maximum time before the unit is restored exactly to its resting scale.")]
+        [SerializeField, Min(0.05f)] private float unitReleaseBounceDuration = DefaultUnitReleaseBounceDuration;
 
         [Header("Scene Loading")]
         [SerializeField] private string lobbySceneName = DefaultLobbySceneName;
@@ -260,6 +283,7 @@ namespace MochiPark.Runtime.Views
         private void OnDestroy()
         {
             isOpeningPark = false;
+            StopUnitReleaseBounces();
             StopCountdownIntro(true);
             StopFrenzyMomentVfx(true);
             StopPendingFloatingScores();
@@ -1762,6 +1786,7 @@ namespace MochiPark.Runtime.Views
         private void RefreshUnits()
         {
             RestoreSelectedOutline();
+            StopUnitReleaseBounces();
 
             for (int i = 0; i < unitViews.Count; i++)
             {
@@ -2111,6 +2136,7 @@ namespace MochiPark.Runtime.Views
 
             RuntimeBoardState board = director.State.Board;
             GameObject releasedUnitView = draggedUnitView;
+            unitInstanceIdsByView.TryGetValue(releasedUnitView, out string releasedUnitInstanceId);
             int pointerId = activePointerId;
             ClearDragState();
 
@@ -2118,6 +2144,7 @@ namespace MochiPark.Runtime.Views
                 !cameraController.TryScreenToBoardCell(screenPosition, board, out Vector2Int targetCell, out _))
             {
                 RefreshUnits();
+                PlayUnitReleaseBounce(releasedUnitInstanceId, releasedUnitView);
                 return;
             }
 
@@ -2159,16 +2186,100 @@ namespace MochiPark.Runtime.Views
             if (!placement.IsValid)
             {
                 RefreshSelectionPreviewSprites();
+                PlayUnitReleaseBounce(unitInstanceId, releasedUnitView);
                 return;
             }
 
             if (!director.PlacementSystem.MoveUnit(unit.InstanceId, clampedTargetCell, targetRotation))
             {
                 RefreshUnits();
+                PlayUnitReleaseBounce(unitInstanceId, releasedUnitView);
                 return;
             }
 
             MochiParkAudioManager.PlaySfx(MochiParkAudioManager.UnitPlacedSfxCueId);
+            PlayUnitReleaseBounce(unitInstanceId, releasedUnitView);
+        }
+
+        private void PlayUnitReleaseBounce(string unitInstanceId, GameObject fallbackUnitView)
+        {
+            GameObject unitView = fallbackUnitView;
+            if (!string.IsNullOrEmpty(unitInstanceId) &&
+                unitViewsByInstanceId.TryGetValue(unitInstanceId, out GameObject currentUnitView) &&
+                currentUnitView != null)
+            {
+                unitView = currentUnitView;
+            }
+
+            if (unitView == null || unitReleaseBounceMagnitude <= 0f || unitReleaseBounceDuration <= 0f)
+            {
+                return;
+            }
+
+            if (unitReleaseBounceCoroutines.TryGetValue(unitView, out Coroutine runningBounce))
+            {
+                StopCoroutine(runningBounce);
+                if (unitReleaseBounceBaseScales.TryGetValue(unitView, out Vector3 storedBaseScale))
+                {
+                    unitView.transform.localScale = storedBaseScale;
+                }
+            }
+
+            Vector3 baseScale = unitView.transform.localScale;
+            unitReleaseBounceBaseScales[unitView] = baseScale;
+            unitReleaseBounceCoroutines[unitView] = StartCoroutine(BounceUnitScale(unitView, baseScale));
+        }
+
+        private IEnumerator BounceUnitScale(GameObject unitView, Vector3 baseScale)
+        {
+            float elapsed = 0f;
+            float frequency = Mathf.Max(0.01f, unitReleaseBounceFrequency);
+            float decreaseRatio = Mathf.Clamp(unitReleaseBounceMagnitudeDecreaseRatio, 0.01f, 0.99f);
+
+            while (unitView != null && elapsed < unitReleaseBounceDuration)
+            {
+                float completedCycles = elapsed * frequency;
+                float dampedMagnitude = unitReleaseBounceMagnitude * Mathf.Pow(decreaseRatio, completedCycles);
+                float wave = Mathf.Sin(completedCycles * Mathf.PI * 2f) * dampedMagnitude;
+                float horizontalScale = Mathf.Max(0.01f, 1f - wave * unitReleaseBounceSquashRatio);
+                float verticalScale = Mathf.Max(0.01f, 1f + wave);
+
+                unitView.transform.localScale = Vector3.Scale(
+                    baseScale,
+                    new Vector3(horizontalScale, verticalScale, horizontalScale));
+
+                elapsed += Time.unscaledDeltaTime;
+                yield return null;
+            }
+
+            if (unitView != null)
+            {
+                unitView.transform.localScale = baseScale;
+                unitReleaseBounceCoroutines.Remove(unitView);
+                unitReleaseBounceBaseScales.Remove(unitView);
+            }
+        }
+
+        private void StopUnitReleaseBounces()
+        {
+            foreach (Coroutine bounceCoroutine in unitReleaseBounceCoroutines.Values)
+            {
+                if (bounceCoroutine != null)
+                {
+                    StopCoroutine(bounceCoroutine);
+                }
+            }
+
+            foreach (KeyValuePair<GameObject, Vector3> entry in unitReleaseBounceBaseScales)
+            {
+                if (entry.Key != null)
+                {
+                    entry.Key.transform.localScale = entry.Value;
+                }
+            }
+
+            unitReleaseBounceCoroutines.Clear();
+            unitReleaseBounceBaseScales.Clear();
         }
 
         private static Vector2Int ClampCellToBoard(RuntimeBoardState board, Vector2Int cell)
