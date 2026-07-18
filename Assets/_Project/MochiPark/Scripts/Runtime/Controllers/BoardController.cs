@@ -2132,11 +2132,12 @@ namespace MochiPark.Runtime.Views
             RuntimeBoardState board = director.State.Board;
             GameObject releasedUnitView = draggedUnitView;
             unitInstanceIdsByView.TryGetValue(releasedUnitView, out string releasedUnitInstanceId);
-            int pointerId = activePointerId;
             ClearDragState();
 
-            if (IsPointerOverUi(pointerId) ||
-                !cameraController.TryScreenToBoardCell(
+            // The drag preview intentionally follows the board beneath screen-space UI.
+            // Rejecting the release solely because a UI raycast target overlaps the
+            // pointer makes a green, valid preview snap back instead of committing.
+            if (!cameraController.TryScreenToBoardCell(
                     screenPosition,
                     board,
                     out Vector2Int targetCell,
