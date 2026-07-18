@@ -2029,7 +2029,10 @@ namespace MochiPark.Runtime.Views
             {
                 if (pressedUnitWasSelected)
                 {
-                    DeselectUnit();
+                    if (!TryConfirmPendingDraftPlacement(true) && !HasPendingDraftSelection())
+                    {
+                        DeselectUnit();
+                    }
                 }
 
                 ClearPressedUnitState();
