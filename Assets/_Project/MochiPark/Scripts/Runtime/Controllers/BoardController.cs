@@ -434,6 +434,7 @@ namespace MochiPark.Runtime.Views
             draggedUnitVisualVelocity = Vector3.zero;
             activePointerId = pointerId;
             ClearPressedUnitState();
+            HideUnitDetailPanel();
             screenspaceIndicatorView?.HideEditPanel();
             PreviewDraggedUnit(screenPosition);
         }
@@ -2031,6 +2032,7 @@ namespace MochiPark.Runtime.Views
             activePointerId = pressedPointerId;
             ClearPressedUnitState();
             SetDraftSuppressedForUnitDrag(true);
+            HideUnitDetailPanel();
             screenspaceIndicatorView?.HideEditPanel();
             PreviewDraggedUnit(screenPosition);
         }
