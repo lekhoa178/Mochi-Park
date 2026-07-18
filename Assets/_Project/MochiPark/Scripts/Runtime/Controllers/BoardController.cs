@@ -1156,7 +1156,9 @@ namespace MochiPark.Runtime.Views
                 {
                     Vector2Int cell = new Vector2Int(x, y);
                     BoardCellType cellType = board.GetCellType(cell);
-                    if (!IsOpenBuildableHighlightCell(cellType) || !board.IsBuildableUnlocked(cell))
+                    if (!IsOpenBuildableHighlightCell(cellType) ||
+                        !board.IsBuildableUnlocked(cell) ||
+                        board.IsOccupied(cell))
                     {
                         continue;
                     }
