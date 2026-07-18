@@ -1476,36 +1476,56 @@ namespace MochiPark.Runtime.Views
             return (GridRotation)(((int)rotation + 1) % 4);
         }
 
-        private bool TryApplySmartPreviewRotation(UnitInstanceState unit, Vector2Int anchorCell, RuntimeBoardState board)
+        private bool TryApplySmartPreviewRotation(
+            UnitInstanceState unit,
+            Vector3 footprintCenterWorld,
+            RuntimeBoardState board,
+            out Vector2Int anchorCell)
         {
-            if (unit == null || !HasPathTargetedInfluence(unit.Definition))
+            anchorCell = default;
+            if (unit == null || unit.Definition == null || board == null)
+            {
+                return false;
+            }
+
+            GridRotation preferredRotation = GetSelectedUnitPreviewRotation(unit);
+            anchorCell = ResolveFootprintAnchorCell(
+                board,
+                unit.Definition.FootprintPattern,
+                preferredRotation,
+                footprintCenterWorld);
+            if (!HasPathTargetedInfluence(unit.Definition))
             {
                 return false;
             }
 
             if (!TryFindBestValidRotation(
                 unit,
-                anchorCell,
+                footprintCenterWorld,
                 board,
-                GetSelectedUnitPreviewRotation(unit),
-                out GridRotation bestRotation))
+                preferredRotation,
+                out GridRotation bestRotation,
+                out Vector2Int bestAnchorCell))
             {
                 return false;
             }
 
             selectedUnitPreviewRotation = bestRotation;
             hasSelectedUnitPreviewRotation = true;
+            anchorCell = bestAnchorCell;
             return true;
         }
 
         private bool TryFindBestValidRotation(
             UnitInstanceState unit,
-            Vector2Int anchorCell,
+            Vector3 footprintCenterWorld,
             RuntimeBoardState board,
             GridRotation preferredRotation,
-            out GridRotation bestRotation)
+            out GridRotation bestRotation,
+            out Vector2Int bestAnchorCell)
         {
             bestRotation = preferredRotation;
+            bestAnchorCell = default;
             if (unit == null ||
                 unit.Definition == null ||
                 board == null ||
@@ -1522,21 +1542,31 @@ namespace MochiPark.Runtime.Views
                 GridRotation candidateRotation = unit.Definition.RotationAllowed
                     ? (GridRotation)(((int)preferredRotation + i) % 4)
                     : GridRotation.North;
+                Vector2Int candidateAnchorCell = ResolveFootprintAnchorCell(
+                    board,
+                    unit.Definition.FootprintPattern,
+                    candidateRotation,
+                    footprintCenterWorld);
 
                 if (!director.PlacementSystem.CanPlace(
                     unit.Definition,
-                    anchorCell,
+                    candidateAnchorCell,
                     candidateRotation,
                     unit.InstanceId).IsValid)
                 {
                     continue;
                 }
 
-                int affectedPathCells = CountAffectedPathCells(unit.Definition, anchorCell, candidateRotation, board);
+                int affectedPathCells = CountAffectedPathCells(
+                    unit.Definition,
+                    candidateAnchorCell,
+                    candidateRotation,
+                    board);
                 if (affectedPathCells > bestAffectedPathCells)
                 {
                     bestAffectedPathCells = affectedPathCells;
                     bestRotation = candidateRotation;
+                    bestAnchorCell = candidateAnchorCell;
                 }
             }
 
@@ -2031,33 +2061,56 @@ namespace MochiPark.Runtime.Views
                 return;
             }
 
-            Vector2Int clampedCell = ClampCellToBoard(board, cell);
-            bool isPointerOutsideBoard = cell != clampedCell;
-            bool anchorChanged = !hasSelectedUnitPreviewAnchor || selectedUnitPreviewAnchorCell != clampedCell;
-            selectedUnitPreviewAnchorCell = clampedCell;
-            hasSelectedUnitPreviewAnchor = true;
             UnitInstanceState unit = null;
-            if (anchorChanged && unitInstanceIdsByView.TryGetValue(draggedUnitView, out string unitInstanceId))
+            if (unitInstanceIdsByView.TryGetValue(draggedUnitView, out string unitInstanceId))
             {
                 unit = director.State.FindUnit(unitInstanceId);
-                if (unit != null && TryApplySmartPreviewRotation(unit, clampedCell, board))
-                {
-                    draggedUnitView.transform.rotation = Quaternion.Euler(
-                        0f,
-                        (int)selectedUnitPreviewRotation * 90f,
-                        0f);
-                }
             }
 
-            if (unit == null && unitInstanceIdsByView.TryGetValue(draggedUnitView, out string draggedUnitInstanceId))
+            Vector2Int clampedPointerCell = ClampCellToBoard(board, cell);
+            bool isPointerOutsideBoard = cell != clampedPointerCell;
+            Vector3 footprintCenterTarget = isPointerOutsideBoard
+                ? board.CellToWorldSurface(clampedPointerCell)
+                : surfacePoint;
+            Vector2Int anchorCell = unit != null && unit.Definition != null
+                ? ResolveFootprintAnchorCell(
+                    board,
+                    unit.Definition.FootprintPattern,
+                    GetSelectedUnitPreviewRotation(unit),
+                    footprintCenterTarget)
+                : clampedPointerCell;
+            bool anchorChanged = !hasSelectedUnitPreviewAnchor || selectedUnitPreviewAnchorCell != anchorCell;
+            if (anchorChanged &&
+                unit != null &&
+                TryApplySmartPreviewRotation(unit, footprintCenterTarget, board, out Vector2Int smartAnchorCell))
             {
-                unit = director.State.FindUnit(draggedUnitInstanceId);
+                anchorCell = smartAnchorCell;
+                draggedUnitView.transform.rotation = Quaternion.Euler(
+                    0f,
+                    (int)selectedUnitPreviewRotation * 90f,
+                    0f);
             }
 
+            selectedUnitPreviewAnchorCell = anchorCell;
+            hasSelectedUnitPreviewAnchor = true;
             RefreshSelectionPreviewSprites();
             if (!isPointerOutsideBoard)
             {
-                SmoothPositionDraggedUnitOnSurface(draggedUnitView, surfacePoint);
+                Vector3 visualTarget = surfacePoint;
+                if (unit != null &&
+                    unit.Definition != null &&
+                    TryGetFootprintWorldArea(
+                        board,
+                        unit.Definition.FootprintPattern,
+                        anchorCell,
+                        GetSelectedUnitPreviewRotation(unit),
+                        out Vector3 footprintCenter,
+                        out _))
+                {
+                    visualTarget = footprintCenter;
+                }
+
+                SmoothPositionDraggedUnitOnSurface(draggedUnitView, visualTarget);
             }
             else if (unit != null)
             {
@@ -2066,13 +2119,13 @@ namespace MochiPark.Runtime.Views
                     draggedUnitView,
                     board,
                     unit.Definition,
-                    clampedCell,
+                    anchorCell,
                     GetSelectedUnitPreviewRotation(unit));
             }
             else
             {
                 draggedUnitVisualVelocity = Vector3.zero;
-                PositionUnitOnSurface(draggedUnitView, board.CellToWorldSurface(clampedCell));
+                PositionUnitOnSurface(draggedUnitView, board.CellToWorldSurface(clampedPointerCell));
             }
         }
 
@@ -2092,7 +2145,11 @@ namespace MochiPark.Runtime.Views
             ClearDragState();
 
             if (IsPointerOverUi(pointerId) ||
-                !cameraController.TryScreenToBoardCell(screenPosition, board, out Vector2Int targetCell, out _))
+                !cameraController.TryScreenToBoardCell(
+                    screenPosition,
+                    board,
+                    out Vector2Int targetCell,
+                    out Vector3 targetSurfacePoint))
             {
                 RefreshUnits();
                 PlayUnitReleaseBounce(releasedUnitInstanceId, releasedUnitView);
@@ -2106,32 +2163,47 @@ namespace MochiPark.Runtime.Views
             }
 
             UnitInstanceState unit = director.State.FindUnit(unitInstanceId);
-            if (unit == null)
+            if (unit == null || unit.Definition == null)
             {
                 RefreshUnits();
                 return;
             }
 
-            Vector2Int clampedTargetCell = ClampCellToBoard(board, targetCell);
-            bool anchorChanged = !hasSelectedUnitPreviewAnchor || selectedUnitPreviewAnchorCell != clampedTargetCell;
-            selectedUnitPreviewAnchorCell = clampedTargetCell;
-            hasSelectedUnitPreviewAnchor = true;
-            if (anchorChanged)
+            Vector2Int clampedPointerCell = ClampCellToBoard(board, targetCell);
+            Vector3 footprintCenterTarget = targetCell != clampedPointerCell
+                ? board.CellToWorldSurface(clampedPointerCell)
+                : targetSurfacePoint;
+            GridRotation targetRotation = GetSelectedUnitPreviewRotation(unit);
+            Vector2Int targetAnchorCell = ResolveFootprintAnchorCell(
+                board,
+                unit.Definition.FootprintPattern,
+                targetRotation,
+                footprintCenterTarget);
+            bool anchorChanged = !hasSelectedUnitPreviewAnchor ||
+                selectedUnitPreviewAnchorCell != targetAnchorCell;
+            if (anchorChanged &&
+                TryApplySmartPreviewRotation(
+                    unit,
+                    footprintCenterTarget,
+                    board,
+                    out Vector2Int smartAnchorCell))
             {
-                TryApplySmartPreviewRotation(unit, clampedTargetCell, board);
+                targetAnchorCell = smartAnchorCell;
+                targetRotation = GetSelectedUnitPreviewRotation(unit);
             }
 
-            GridRotation targetRotation = GetSelectedUnitPreviewRotation(unit);
+            selectedUnitPreviewAnchorCell = targetAnchorCell;
+            hasSelectedUnitPreviewAnchor = true;
             PositionUnitForFootprint(
                 releasedUnitView,
                 board,
                 unit.Definition,
-                clampedTargetCell,
+                targetAnchorCell,
                 targetRotation);
 
             PlacementResult placement = director.PlacementSystem.CanPlace(
                 unit.Definition,
-                clampedTargetCell,
+                targetAnchorCell,
                 targetRotation,
                 unit.InstanceId);
             if (!placement.IsValid)
@@ -2141,7 +2213,7 @@ namespace MochiPark.Runtime.Views
                 return;
             }
 
-            if (!director.PlacementSystem.MoveUnit(unit.InstanceId, clampedTargetCell, targetRotation))
+            if (!director.PlacementSystem.MoveUnit(unit.InstanceId, targetAnchorCell, targetRotation))
             {
                 RefreshUnits();
                 PlayUnitReleaseBounce(unitInstanceId, releasedUnitView);
@@ -2238,6 +2310,54 @@ namespace MochiPark.Runtime.Views
             return new Vector2Int(
                 Mathf.Clamp(cell.x, 0, board.Width - 1),
                 Mathf.Clamp(cell.y, 0, board.Height - 1));
+        }
+
+        private static Vector2Int ResolveFootprintAnchorCell(
+            RuntimeBoardState board,
+            PatternDefinitionSO footprintPattern,
+            GridRotation rotation,
+            Vector3 footprintCenterWorld)
+        {
+            if (board == null || board.TileSizeXZ <= Mathf.Epsilon)
+            {
+                return Vector2Int.zero;
+            }
+
+            Vector2Int centerCell = new Vector2Int(
+                Mathf.FloorToInt(footprintCenterWorld.x / board.TileSizeXZ + 0.5f),
+                Mathf.FloorToInt(footprintCenterWorld.z / board.TileSizeXZ + 0.5f));
+            if (footprintPattern == null)
+            {
+                return centerCell;
+            }
+
+            List<Vector2Int> footprintOffsets = GridRotationUtility.ResolveCells(
+                footprintPattern,
+                Vector2Int.zero,
+                rotation);
+            if (footprintOffsets.Count == 0)
+            {
+                return centerCell;
+            }
+
+            int minX = footprintOffsets[0].x;
+            int maxX = minX;
+            int minY = footprintOffsets[0].y;
+            int maxY = minY;
+            for (int i = 1; i < footprintOffsets.Count; i++)
+            {
+                Vector2Int offset = footprintOffsets[i];
+                minX = Mathf.Min(minX, offset.x);
+                maxX = Mathf.Max(maxX, offset.x);
+                minY = Mathf.Min(minY, offset.y);
+                maxY = Mathf.Max(maxY, offset.y);
+            }
+
+            float centerOffsetX = (minX + maxX) * 0.5f;
+            float centerOffsetY = (minY + maxY) * 0.5f;
+            return new Vector2Int(
+                Mathf.FloorToInt(footprintCenterWorld.x / board.TileSizeXZ - centerOffsetX + 0.5f),
+                Mathf.FloorToInt(footprintCenterWorld.z / board.TileSizeXZ - centerOffsetY + 0.5f));
         }
 
         private void ClearDragState()
