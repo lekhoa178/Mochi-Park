@@ -21,7 +21,7 @@ namespace MochiPark.Runtime.Views
         private const float BuildableSpriteSelectionFadeDuration = 0.18f;
         private const float UnitPickRayDistance = 1000f;
         private const float DragStartScreenDistance = 8f;
-        private const float DefaultUnitDragSmoothTime = 0.08f;
+        private const float DefaultUnitDragSmoothTime = 0.02f;
         private const float DefaultVisitorHeightOffset = 0.55f;
         private const float VisitorMinimumMoveSpeed = 0.01f;
         private const float VisitorReachedTileCenterDistance = 0.01f;
