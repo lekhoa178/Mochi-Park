@@ -35,9 +35,9 @@ MonoBehaviour:
     highlightSprite: {fileID: 21300000, guid: 0501344af91962540b65debe214c9c5d, type: 3}
     highlightSpriteColor: {r: 0.8323559, g: 1, b: 0.33333337, a: 1}
     shovelHighlightSpriteColor: {r: 0.45, g: 0.8, b: 1, a: 1}
-    buildableLockedSprite: {fileID: 21300000, guid: cbd42d9a2a3df7d4dbf6ff92fb7af881, type: 3}
+    buildableLockedPrefab: {fileID: 610628822238812972, guid: 7df4c4c8f76e43a1a42a4c8a33f7d214, type: 3}
     footprintPreviewSprite: {fileID: 21300000, guid: 402c0cdeb50ab3c4fb43b90fc3eff50d, type: 3}
-    affectedPreviewSprite: {fileID: 21300000, guid: d2f77ba20580e704a902442f216171bd, type: 3}
+    affectedPreviewSprite: {fileID: 21300000, guid: 402c0cdeb50ab3c4fb43b90fc3eff50d, type: 3}
     footprintPreviewColor: {r: 0.7391721, g: 1, b: 0.34901965, a: 0.78431374}
     affectedPathPreviewColor: {r: 0.5896226, g: 0.81737137, b: 1, a: 0.78431374}
     affectedBuildablePreviewColor: {r: 0.9077403, g: 0.6745283, b: 1, a: 0.78431374}

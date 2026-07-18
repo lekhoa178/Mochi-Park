@@ -71,7 +71,7 @@ namespace MochiPark.Runtime.Views
         private readonly List<string> joyMultiplierIndicatorRemovalBuffer = new List<string>();
         private readonly List<string> dailyLimitIndicatorRemovalBuffer = new List<string>();
         private readonly Dictionary<Vector2Int, SpriteRenderer> buildableSpriteRenderers = new Dictionary<Vector2Int, SpriteRenderer>();
-        private readonly Dictionary<Vector2Int, SpriteRenderer> lockedBuildableSpriteRenderers = new Dictionary<Vector2Int, SpriteRenderer>();
+        private readonly Dictionary<Vector2Int, GameObject> tileViews = new Dictionary<Vector2Int, GameObject>();
         private readonly Dictionary<Vector2Int, SpriteRenderer> previewSpriteRenderers = new Dictionary<Vector2Int, SpriteRenderer>();
         private readonly Dictionary<Vector2Int, Color> buildableSpriteBaseColors = new Dictionary<Vector2Int, Color>();
         private readonly Dictionary<Vector2Int, Color> previewSpriteBaseColors = new Dictionary<Vector2Int, Color>();
@@ -683,7 +683,7 @@ namespace MochiPark.Runtime.Views
             floatingScoreView?.Clear();
             screenspaceIndicatorView?.Clear();
             buildableSpriteRenderers.Clear();
-            lockedBuildableSpriteRenderers.Clear();
+            tileViews.Clear();
             previewSpriteRenderers.Clear();
             buildableSpriteBaseColors.Clear();
             previewSpriteBaseColors.Clear();
@@ -704,10 +704,10 @@ namespace MochiPark.Runtime.Views
                     if (tile != null)
                     {
                         tile.transform.SetParent(tileRoot, false);
+                        tileViews[cell] = tile;
                     }
 
                     CreateBuildableSprite(board, cell, type);
-                    CreateLockedBuildableSprite(board, cell, type);
                 }
             }
 
@@ -718,8 +718,11 @@ namespace MochiPark.Runtime.Views
 
         private GameObject CreateTile(RuntimeBoardState board, Vector2Int cell, BoardCellType type)
         {
+            BoardCellType visualType = type == BoardCellType.BuildableLocked && board.IsBuildableUnlocked(cell)
+                ? BoardCellType.BuildableOpen
+                : type;
             BoardTilePrefabSelection prefabSelection = board.Definition.TilePrefabSet != null
-                ? board.Definition.TilePrefabSet.GetPrefabSelection(type, board.Definition.GetPathEdgeMask(cell))
+                ? board.Definition.TilePrefabSet.GetPrefabSelection(visualType, board.Definition.GetPathEdgeMask(cell))
                 : new BoardTilePrefabSelection(null, Quaternion.identity);
             GameObject prefab = prefabSelection.Prefab;
 
@@ -727,8 +730,8 @@ namespace MochiPark.Runtime.Views
                 ? Instantiate(prefab)
                 : GameObject.CreatePrimitive(PrimitiveType.Cube);
 
-            tile.name = $"Cell {cell.x},{cell.y} {type}";
-            tile.transform.rotation = GetTileRotation(board, cell, type, prefabSelection) * tile.transform.rotation;
+            tile.name = $"Cell {cell.x},{cell.y} {visualType}";
+            tile.transform.rotation = GetTileRotation(board, cell, visualType, prefabSelection) * tile.transform.rotation;
 
             if (prefab != null)
             {
@@ -743,7 +746,7 @@ namespace MochiPark.Runtime.Views
             Renderer renderer = tile.GetComponentInChildren<Renderer>();
             if (renderer != null && prefab == null)
             {
-                renderer.sharedMaterial = GetMaterial(type);
+                renderer.sharedMaterial = GetMaterial(visualType);
             }
 
             return tile;
@@ -905,18 +908,6 @@ namespace MochiPark.Runtime.Views
             return CreatePreviewSpriteRenderer(board, cell, type, sprite);
         }
 
-        private void CreateLockedBuildableSprite(RuntimeBoardState board, Vector2Int cell, BoardCellType type)
-        {
-            Sprite sprite = GetLockedBuildableSprite(board, cell, type);
-            if (sprite == null)
-            {
-                return;
-            }
-
-            SpriteRenderer spriteRenderer = CreateLockedBuildableSpriteRenderer(board, cell, type, sprite);
-            spriteRenderer.gameObject.SetActive(true);
-        }
-
         private SpriteRenderer CreateBuildableSpriteRenderer(
             RuntimeBoardState board,
             Vector2Int cell,
@@ -951,22 +942,6 @@ namespace MochiPark.Runtime.Views
             return spriteRenderer;
         }
 
-        private SpriteRenderer CreateLockedBuildableSpriteRenderer(
-            RuntimeBoardState board,
-            Vector2Int cell,
-            BoardCellType type,
-            Sprite sprite)
-        {
-            GameObject spriteObject = new GameObject($"Cell {cell.x},{cell.y} {type} Lock Sprite");
-            spriteObject.transform.SetParent(tileRoot, false);
-
-            SpriteRenderer spriteRenderer = spriteObject.AddComponent<SpriteRenderer>();
-            tileSpriteOrdering.ConfigureSprite(spriteRenderer, board, cell, sprite, BoardTileSpriteLayer.LockedBuildable);
-            spriteRenderer.color = Color.white;
-            lockedBuildableSpriteRenderers[cell] = spriteRenderer;
-            return spriteRenderer;
-        }
-
         private void RefreshBuildableSprite(RuntimeBoardState board, Vector2Int cell)
         {
             BoardCellType type = board.GetCellType(cell);
@@ -978,7 +953,6 @@ namespace MochiPark.Runtime.Views
                     Destroy(spriteRenderer.gameObject);
                     buildableSpriteRenderers.Remove(cell);
                     buildableSpriteBaseColors.Remove(cell);
-                    RefreshLockedBuildableSprite(board, cell, type);
                     RefreshSelectionPreviewSprites();
                     return;
                 }
@@ -988,39 +962,28 @@ namespace MochiPark.Runtime.Views
                 buildableSpriteBaseColors[cell] = baseColor;
                 ApplyBuildableSpriteColor(spriteRenderer, baseColor);
                 spriteRenderer.gameObject.SetActive(false);
-                RefreshLockedBuildableSprite(board, cell, type);
                 RefreshSelectionPreviewSprites();
                 return;
             }
 
             CreateBuildableSprite(board, cell, type);
-            RefreshLockedBuildableSprite(board, cell, type);
             RefreshSelectionPreviewSprites();
         }
 
-        private void RefreshLockedBuildableSprite(RuntimeBoardState board, Vector2Int cell, BoardCellType type)
+        private void ReplaceTile(RuntimeBoardState board, Vector2Int cell, BoardCellType type)
         {
-            Sprite sprite = GetLockedBuildableSprite(board, cell, type);
-            if (sprite == null)
+            if (tileViews.TryGetValue(cell, out GameObject existingTile) && existingTile != null)
             {
-                if (lockedBuildableSpriteRenderers.TryGetValue(cell, out SpriteRenderer existingRenderer) &&
-                    existingRenderer != null)
-                {
-                    Destroy(existingRenderer.gameObject);
-                }
-
-                lockedBuildableSpriteRenderers.Remove(cell);
-                return;
+                existingTile.SetActive(false);
+                Destroy(existingTile);
             }
 
-            if (!lockedBuildableSpriteRenderers.TryGetValue(cell, out SpriteRenderer spriteRenderer) ||
-                spriteRenderer == null)
+            GameObject replacement = CreateTile(board, cell, type);
+            if (replacement != null)
             {
-                spriteRenderer = CreateLockedBuildableSpriteRenderer(board, cell, type, sprite);
+                replacement.transform.SetParent(tileRoot, false);
+                tileViews[cell] = replacement;
             }
-
-            tileSpriteOrdering.ConfigureSprite(spriteRenderer, board, cell, sprite, BoardTileSpriteLayer.LockedBuildable);
-            spriteRenderer.gameObject.SetActive(true);
         }
 
         private static Sprite GetConfiguredHighlightSprite(RuntimeBoardState board, Vector2Int cell, BoardCellType type)
@@ -1031,18 +994,6 @@ namespace MochiPark.Runtime.Views
             }
 
             return board.Definition.TilePrefabSet.GetHighlightSprite(type);
-        }
-
-        private static Sprite GetLockedBuildableSprite(RuntimeBoardState board, Vector2Int cell, BoardCellType type)
-        {
-            if (board.Definition.TilePrefabSet == null ||
-                type != BoardCellType.BuildableLocked ||
-                board.IsBuildableUnlocked(cell))
-            {
-                return null;
-            }
-
-            return board.Definition.TilePrefabSet.GetBuildableLockedSprite();
         }
 
         private static Color GetConfiguredHighlightSpriteColor(RuntimeBoardState board, Vector2Int cell, BoardCellType type)
@@ -3033,6 +2984,7 @@ namespace MochiPark.Runtime.Views
             }
 
             RefreshBuildableSprite(evt.State.Board, evt.Cell);
+            ReplaceTile(evt.State.Board, evt.Cell, BoardCellType.BuildableOpen);
             if (director.State.RemainingShovelUses <= 0)
             {
                 SetShovelModeActive(false);

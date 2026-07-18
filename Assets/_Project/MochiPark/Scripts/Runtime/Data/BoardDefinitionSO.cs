@@ -115,8 +115,8 @@ namespace MochiPark.Runtime.Data
         [SerializeField] private Color highlightSpriteColor = Color.white;
         [Tooltip("Tint applied to the highlight when the Shovel is selected.")]
         [SerializeField] private Color shovelHighlightSpriteColor = new Color(0.45f, 0.8f, 1f, 1f);
-        [Tooltip("Sprite rendered above locked buildable cells before they are unlocked.")]
-        [SerializeField] private Sprite buildableLockedSprite;
+        [Tooltip("Prefab used by locked buildable cells before they are unlocked.")]
+        [SerializeField] private GameObject buildableLockedPrefab;
         [Header("Selection Preview")]
         [Tooltip("Sprite rendered over cells covered by the selected unit footprint. Falls back to Highlight Sprite when empty.")]
         [SerializeField] private Sprite footprintPreviewSprite;
@@ -151,8 +151,9 @@ namespace MochiPark.Runtime.Data
                 case BoardCellType.Path:
                     return GetPathPrefabSelection(pathEdges);
                 case BoardCellType.BuildableOpen:
-                case BoardCellType.BuildableLocked:
                     return new BoardTilePrefabSelection(buildablePrefab, Quaternion.identity);
+                case BoardCellType.BuildableLocked:
+                    return new BoardTilePrefabSelection(buildableLockedPrefab, Quaternion.identity);
                 default:
                     return new BoardTilePrefabSelection(null, Quaternion.identity);
             }
@@ -170,11 +171,6 @@ namespace MochiPark.Runtime.Data
             return cellType == BoardCellType.BuildableOpen || cellType == BoardCellType.BuildableLocked
                 ? highlightSpriteColor
                 : Color.white;
-        }
-
-        public Sprite GetBuildableLockedSprite()
-        {
-            return buildableLockedSprite;
         }
 
         public Sprite GetFootprintPreviewSprite()
