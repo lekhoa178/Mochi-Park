@@ -345,6 +345,7 @@ namespace MochiPark.Runtime.Views
             eventBus.DraftCompletedForDay -= OnDraftCompletedForDay;
             eventBus.BoardCellUnlocked -= OnBoardCellUnlocked;
             eventBus.ParkOpened -= OnParkOpened;
+            eventBus.GameSpeedChanged -= OnGameSpeedChanged;
             eventBus.VisitorSpawned -= OnVisitorSpawned;
             eventBus.VisitorEnteredCell -= OnVisitorEnteredCell;
             eventBus.FellowAdded -= OnFellowAdded;
@@ -691,6 +692,7 @@ namespace MochiPark.Runtime.Views
             eventBus.DraftCompletedForDay += OnDraftCompletedForDay;
             eventBus.BoardCellUnlocked += OnBoardCellUnlocked;
             eventBus.ParkOpened += OnParkOpened;
+            eventBus.GameSpeedChanged += OnGameSpeedChanged;
             eventBus.VisitorSpawned += OnVisitorSpawned;
             eventBus.VisitorEnteredCell += OnVisitorEnteredCell;
             eventBus.FellowAdded += OnFellowAdded;
@@ -3203,6 +3205,14 @@ namespace MochiPark.Runtime.Views
             RefreshDailyLimitIndicators();
         }
 
+        private void OnGameSpeedChanged(GameSpeedChangedEvent evt)
+        {
+            foreach (GameObject visitorView in visitorViews.Values)
+            {
+                SetVisitorAnimationSpeed(visitorView, evt.EffectiveMultiplier);
+            }
+        }
+
         private void OnVisitorSpawned(VisitorSpawnedEvent evt)
         {
             if (director.State == null)
@@ -3225,6 +3235,7 @@ namespace MochiPark.Runtime.Views
                 visitorView,
                 director.State.Board.CellToWorldSurface(evt.Visitor.Cell));
             visitorSurfaceOffsets[evt.Visitor.VisitorId] = surfaceOffset;
+            SetVisitorAnimationSpeed(visitorView, director.State.GameSpeed.EffectiveMultiplier);
             CrossFadeVisitorAnimation(visitorView, GetVisitorIdleStateName());
             fellowVisualManager?.SetFellowCount(evt.Visitor.VisitorId, visitorView, evt.Visitor.FellowMochiCount);
         }
@@ -3301,6 +3312,21 @@ namespace MochiPark.Runtime.Views
             for (int i = 0; i < animators.Length; i++)
             {
                 animators[i].applyRootMotion = false;
+            }
+        }
+
+        private static void SetVisitorAnimationSpeed(GameObject visitorView, float speedMultiplier)
+        {
+            if (visitorView == null)
+            {
+                return;
+            }
+
+            Animator[] animators = visitorView.GetComponentsInChildren<Animator>(true);
+            float playbackSpeed = Mathf.Max(0f, speedMultiplier);
+            for (int i = 0; i < animators.Length; i++)
+            {
+                animators[i].speed = playbackSpeed;
             }
         }
 
