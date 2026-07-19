@@ -65,6 +65,7 @@ namespace MochiPark.Runtime.Views
         private bool hasCachedExpandedArrowRotation;
         private bool isOpen;
         private bool isCollapsed;
+        private bool isSelectionCollapseForced;
         private bool isSuppressed;
         private bool hasDraftCardDrag;
         private bool hasStartedDraftCardPlacement;
@@ -161,6 +162,29 @@ namespace MochiPark.Runtime.Views
             }
 
             RefreshFromState();
+        }
+
+        public void SetSelectionCollapsed(bool collapsed)
+        {
+            ResolveReferences();
+            CacheShownPosition();
+            if (draftPanel == null || isSelectionCollapseForced == collapsed)
+            {
+                return;
+            }
+
+            isSelectionCollapseForced = collapsed;
+            if (!isOpen)
+            {
+                return;
+            }
+
+            bool showCollapsed = isSelectionCollapseForced || isCollapsed;
+            Vector2 targetPosition = showCollapsed ? GetCollapsedPosition() : shownAnchoredPosition;
+            Quaternion targetArrowRotation = showCollapsed
+                ? expandedArrowRotation * Quaternion.Euler(0f, 0f, 180f)
+                : expandedArrowRotation;
+            TweenTo(targetPosition, true, targetArrowRotation);
         }
 
         private void Awake()
@@ -432,13 +456,17 @@ namespace MochiPark.Runtime.Views
                 return;
             }
 
-            isCollapsed = false;
             if (tweenCoroutine == null)
             {
                 draftPanel.anchoredPosition = GetHiddenPosition();
             }
 
-            TweenTo(shownAnchoredPosition, true, expandedArrowRotation);
+            bool showCollapsed = isSelectionCollapseForced || isCollapsed;
+            Vector2 targetPosition = showCollapsed ? GetCollapsedPosition() : shownAnchoredPosition;
+            Quaternion targetArrowRotation = showCollapsed
+                ? expandedArrowRotation * Quaternion.Euler(0f, 0f, 180f)
+                : expandedArrowRotation;
+            TweenTo(targetPosition, true, targetArrowRotation);
         }
 
         private void SetHiddenImmediate()
@@ -605,6 +633,11 @@ namespace MochiPark.Runtime.Views
         private void OnCollapseClicked()
         {
             if (!isOpen || draftPanel == null)
+            {
+                return;
+            }
+
+            if (isSelectionCollapseForced)
             {
                 return;
             }

@@ -42,6 +42,7 @@ namespace MochiPark.Runtime.Views
         private const string DefaultLobbySceneName = "Lobby";
         private const string ResultCanvasResourcePath = "MochiPark/UI/Result/Canvas_Result";
         private const string ResultVfxResourcePath = "MochiPark/UI/OverlayVFX/VFX_Result";
+        private const string DiscardCanvasResourcePath = "MochiPark/UI/DiscardPanel/Canvas_Discard";
         private const string PathJoyIndicatorKeyPrefix = "path-joy:";
         private const string JoyMultiplierIndicatorKeyPrefix = "unit-joy-multiplier:";
         private const string DailyLimitIndicatorKeyPrefix = "unit-daily-limit:";
@@ -98,6 +99,7 @@ namespace MochiPark.Runtime.Views
         private UIVFXCanvasView uiVfxCanvasView;
         private JoyFlyVFXController joyFlyVfxController;
         private ScreenOverlayCameraController screenOverlayCameraController;
+        private DiscardView discardView;
         private GameObject activeFrenzyMomentVfx;
         private Coroutine countdownIntroCoroutine;
         private Material pathMaterial;
@@ -126,6 +128,7 @@ namespace MochiPark.Runtime.Views
         private bool isOpeningPark;
         private bool isCountdownIntroPlaying;
         private bool hasPlayedCountdownIntro;
+        private bool isDraggedUnitOverDiscard;
 
         [Header("Unit Drag")]
         [SerializeField, Min(0f)] private float unitDragSmoothTime = DefaultUnitDragSmoothTime;
@@ -168,6 +171,7 @@ namespace MochiPark.Runtime.Views
             }
 
             mainCamera = Camera.main;
+            GetOrCreateDiscardView()?.Bind(mainCamera);
             CreateMaterials();
             CreateRoots();
             Subscribe();
@@ -289,6 +293,7 @@ namespace MochiPark.Runtime.Views
             isOpeningPark = false;
             ClearHoveredUnit();
             RestoreSelectedOutline();
+            discardView?.EndUnitDrag();
 
             StopUnitReleaseBounces();
             StopCountdownIntro(true);
@@ -470,6 +475,7 @@ namespace MochiPark.Runtime.Views
             draggedUnitView = unitView;
             draggedUnitVisualVelocity = Vector3.zero;
             activePointerId = pointerId;
+            discardView?.BeginUnitDrag(draggedUnitView);
             ClearPressedUnitState();
             HideUnitDetailPanel();
             screenspaceIndicatorView?.HideEditPanel();
@@ -741,7 +747,7 @@ namespace MochiPark.Runtime.Views
             selectedUnitInstanceId = null;
             hasSelectedUnitPreviewAnchor = false;
             hasSelectedUnitPreviewRotation = false;
-            RefreshDraftSuppression();
+            RefreshDraftPresentation();
             buildableSpriteFadeAlpha = 0f;
 
             for (int y = 0; y < board.Height; y++)
@@ -1152,6 +1158,12 @@ namespace MochiPark.Runtime.Views
             {
                 HideAllBuildableSprites();
                 ShowLockedBuildableHighlights(director.State.Board);
+                return;
+            }
+
+            if (isDraggedUnitOverDiscard)
+            {
+                HideAllBuildableSprites();
                 return;
             }
 
@@ -1898,7 +1910,7 @@ namespace MochiPark.Runtime.Views
                 ShowUnitDetailForSelection();
             }
 
-            RefreshDraftSuppression();
+            RefreshDraftPresentation();
             SetBuildableSpritesVisible(ShouldShowBuildableSprites());
             RefreshDailyLimitIndicators();
             RefreshJoyMultiplierIndicators();
@@ -2083,8 +2095,9 @@ namespace MochiPark.Runtime.Views
             draggedUnitView = pressedUnitView;
             draggedUnitVisualVelocity = Vector3.zero;
             activePointerId = pressedPointerId;
+            discardView?.BeginUnitDrag(draggedUnitView);
             ClearPressedUnitState();
-            RefreshDraftSuppression();
+            RefreshDraftPresentation();
             HideUnitDetailPanel();
             screenspaceIndicatorView?.HideEditPanel();
             PreviewDraggedUnit(screenPosition);
@@ -2096,6 +2109,9 @@ namespace MochiPark.Runtime.Views
             {
                 return;
             }
+
+            bool isOverDiscard = discardView != null && discardView.ContainsScreenPoint(screenPosition);
+            SetDraggedUnitOverDiscard(isOverDiscard);
 
             RuntimeBoardState board = director.State.Board;
             if (!cameraController.TryScreenToBoardCell(
@@ -2111,6 +2127,12 @@ namespace MochiPark.Runtime.Views
             if (unitInstanceIdsByView.TryGetValue(draggedUnitView, out string unitInstanceId))
             {
                 unit = director.State.FindUnit(unitInstanceId);
+            }
+
+            if (isOverDiscard)
+            {
+                SmoothPositionDraggedUnitOnSurface(draggedUnitView, surfacePoint);
+                return;
             }
 
             Vector2Int clampedPointerCell = ClampCellToBoard(board, cell);
@@ -2187,7 +2209,19 @@ namespace MochiPark.Runtime.Views
             RuntimeBoardState board = director.State.Board;
             GameObject releasedUnitView = draggedUnitView;
             unitInstanceIdsByView.TryGetValue(releasedUnitView, out string releasedUnitInstanceId);
+            bool discardReleasedUnit = discardView != null && discardView.ContainsScreenPoint(screenPosition);
             ClearDragState();
+
+            if (discardReleasedUnit)
+            {
+                if (!TryDiscardUnit(releasedUnitInstanceId))
+                {
+                    RefreshUnits();
+                    PlayUnitReleaseBounce(releasedUnitInstanceId, releasedUnitView);
+                }
+
+                return;
+            }
 
             // The drag preview intentionally follows the board beneath screen-space UI.
             // Rejecting the release solely because a UI raycast target overlaps the
@@ -2269,6 +2303,25 @@ namespace MochiPark.Runtime.Views
 
             MochiParkAudioManager.PlaySfx(MochiParkAudioManager.UnitPlacedSfxCueId);
             PlayUnitReleaseBounce(unitInstanceId, releasedUnitView);
+        }
+
+        private bool TryDiscardUnit(string unitInstanceId)
+        {
+            if (string.IsNullOrEmpty(unitInstanceId) ||
+                director == null ||
+                director.State == null ||
+                director.PlacementSystem == null)
+            {
+                return false;
+            }
+
+            if (director.State.Draft.HasPendingPick &&
+                director.State.Draft.PendingUnitInstanceId == unitInstanceId)
+            {
+                return director.CancelDraftSelection();
+            }
+
+            return director.PlacementSystem.RemoveUnit(unitInstanceId);
         }
 
         private void PlayUnitReleaseBounce(string unitInstanceId, GameObject fallbackUnitView)
@@ -2409,16 +2462,31 @@ namespace MochiPark.Runtime.Views
 
         private void ClearDragState()
         {
+            discardView?.EndUnitDrag();
+            SetDraggedUnitOverDiscard(false);
             draggedUnitView = null;
             draggedUnitVisualVelocity = Vector3.zero;
             activePointerId = MousePointerId;
-            RefreshDraftSuppression();
+            RefreshDraftPresentation();
         }
 
-        private void RefreshDraftSuppression()
+        private void SetDraggedUnitOverDiscard(bool isOverDiscard)
         {
-            bool suppressed = selectedUnitView != null || draggedUnitView != null || isCountdownIntroPlaying;
+            if (isDraggedUnitOverDiscard == isOverDiscard)
+            {
+                return;
+            }
+
+            isDraggedUnitOverDiscard = isOverDiscard;
+            discardView?.SetHighlighted(isOverDiscard);
+            RefreshSelectionPreviewSprites();
+        }
+
+        private void RefreshDraftPresentation()
+        {
+            bool suppressed = draggedUnitView != null || isCountdownIntroPlaying;
             draftView?.SetSuppressed(suppressed);
+            draftView?.SetSelectionCollapsed(selectedUnitView != null);
         }
 
         private void ClearPressedUnitState()
@@ -2435,7 +2503,7 @@ namespace MochiPark.Runtime.Views
             PlayUnitReleaseBounce(unitInstanceId, unitView);
             if (selectedUnitView == unitView)
             {
-                RefreshDraftSuppression();
+                RefreshDraftPresentation();
                 RefreshSelectionPreviewSprites();
                 ShowUnitDetailForSelection();
                 return;
@@ -2446,7 +2514,7 @@ namespace MochiPark.Runtime.Views
 
             selectedUnitView = unitView;
             selectedUnitInstanceId = unitInstanceId;
-            RefreshDraftSuppression();
+            RefreshDraftPresentation();
             if (director != null && director.State != null)
             {
                 UnitInstanceState unit = director.State.FindUnit(unitInstanceId);
@@ -2471,7 +2539,7 @@ namespace MochiPark.Runtime.Views
             RestoreSelectedOutline();
             selectedUnitView = null;
             selectedUnitInstanceId = null;
-            RefreshDraftSuppression();
+            RefreshDraftPresentation();
             hasSelectedUnitPreviewAnchor = false;
             hasSelectedUnitPreviewRotation = false;
             screenspaceIndicatorView?.HideEditPanel();
@@ -2611,7 +2679,7 @@ namespace MochiPark.Runtime.Views
             isCountdownIntroPlaying = true;
             ClearPressedUnitState();
             ClearDragState();
-            RefreshDraftSuppression();
+            RefreshDraftPresentation();
             DeselectUnit();
             SetShovelModeActive(false);
             SetBuildableSpritesVisible(false);
@@ -2633,7 +2701,7 @@ namespace MochiPark.Runtime.Views
 
             isCountdownIntroPlaying = false;
             countdownIntroCoroutine = null;
-            RefreshDraftSuppression();
+            RefreshDraftPresentation();
             SetBuildableSpritesVisible(ShouldShowBuildableSprites());
             RefreshHudShovelState();
         }
@@ -2647,7 +2715,7 @@ namespace MochiPark.Runtime.Views
             }
 
             isCountdownIntroPlaying = false;
-            RefreshDraftSuppression();
+            RefreshDraftPresentation();
             RefreshHudShovelState();
             if (destroyOverlayVfx)
             {
@@ -3899,6 +3967,38 @@ namespace MochiPark.Runtime.Views
                 : null;
         }
 
+        private DiscardView GetOrCreateDiscardView()
+        {
+            if (discardView != null)
+            {
+                return discardView;
+            }
+
+            discardView = FindFirstObjectByType<DiscardView>(FindObjectsInactive.Include);
+            if (discardView != null)
+            {
+                return discardView;
+            }
+
+            GameObject prefab = Resources.Load<GameObject>(DiscardCanvasResourcePath);
+            if (prefab == null)
+            {
+                Debug.LogWarning($"{nameof(BoardController)} cannot resolve the discard canvas at Resources/{DiscardCanvasResourcePath}.", this);
+                return null;
+            }
+
+            GameObject instance = Instantiate(prefab);
+            instance.name = prefab.name;
+            instance.SetActive(true);
+            discardView = instance.GetComponent<DiscardView>();
+            if (discardView == null)
+            {
+                discardView = instance.AddComponent<DiscardView>();
+            }
+
+            return discardView;
+        }
+
         private ScreenOverlayCameraController GetOrCreateScreenOverlayCameraController()
         {
             if (screenOverlayCameraController == null)
@@ -4412,7 +4512,7 @@ namespace MochiPark.Runtime.Views
             draftView.SkipRequested += SkipDraftForDay;
             draftView.RerollRequested -= RequestDraftReroll;
             draftView.RerollRequested += RequestDraftReroll;
-            RefreshDraftSuppression();
+            RefreshDraftPresentation();
         }
 
         private void RefreshHudShovelState()

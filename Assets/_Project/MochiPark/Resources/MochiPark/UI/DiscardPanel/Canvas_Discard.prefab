@@ -151,6 +151,7 @@ GameObject:
   - component: {fileID: 6747180771948684913}
   - component: {fileID: 6905319293929041981}
   - component: {fileID: 2038692985924608750}
+  - component: {fileID: 8617759016398384112}
   m_Layer: 0
   m_Name: Canvas_Discard
   m_TagString: Untagged
@@ -243,6 +244,25 @@ MonoBehaviour:
   m_BlockingMask:
     serializedVersion: 2
     m_Bits: 4294967295
+--- !u!114 &8617759016398384112
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4404237473488366592}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9f3b0a86d0f94b729ca81fae076df21c, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  discardPanel: {fileID: 8294356221334951062}
+  highlightedScale: 1.12
+  highlightDuration: 0.2
+  resetDuration: 0.12
+  hiddenOffsetY: 280
+  showDuration: 0.28
+  hideDuration: 0.2
 --- !u!1 &4721589759841267115
 GameObject:
   m_ObjectHideFlags: 0
@@ -253,7 +273,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8294356221334951062}
   m_Layer: 0
-  m_Name: Discard
+  m_Name: DiscardPanel
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
