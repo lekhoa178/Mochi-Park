@@ -9,6 +9,7 @@ namespace MochiPark.Runtime.Level
 
         public int CurrentRollIndex { get; private set; }
         public int TotalRollsToday { get; private set; }
+        public int RemainingRerolls { get; private set; }
         public IReadOnlyList<DraftOfferState> ActiveOffers => activeOffers;
         public IReadOnlyList<DraftPickSummary> PicksToday => picksToday;
         public uint RngSeed { get; private set; }
@@ -19,10 +20,11 @@ namespace MochiPark.Runtime.Level
         public bool HasPendingPick => !string.IsNullOrEmpty(PendingUnitInstanceId);
         public DraftOfferState ActiveOffer => activeOffers.Count > 0 ? activeOffers[0] : null;
 
-        public void PrepareDay(int totalRollsToday, uint rngSeed)
+        public void PrepareDay(int totalRollsToday, int rerollCount, uint rngSeed)
         {
             CurrentRollIndex = 0;
             TotalRollsToday = totalRollsToday < 0 ? 0 : totalRollsToday;
+            RemainingRerolls = rerollCount < 0 ? 0 : rerollCount;
             RngSeed = rngSeed;
             RngStep = 0;
             PendingUnitInstanceId = null;
@@ -83,6 +85,17 @@ namespace MochiPark.Runtime.Level
             int step = RngStep;
             RngStep++;
             return step;
+        }
+
+        public bool TryConsumeReroll()
+        {
+            if (RemainingRerolls <= 0)
+            {
+                return false;
+            }
+
+            RemainingRerolls--;
+            return true;
         }
     }
 

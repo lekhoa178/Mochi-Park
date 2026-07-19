@@ -16,6 +16,7 @@ namespace MochiPark.Runtime.Level
             List<float> allowedGameSpeedMultipliers,
             float defaultGameSpeedOnDayStart,
             int upgradeRollCount,
+            int rerollCount,
             int draftCardCount,
             int unlockCharges,
             UnitPoolRules unitPoolRules,
@@ -35,6 +36,7 @@ namespace MochiPark.Runtime.Level
             AllowedGameSpeedMultipliers = allowedGameSpeedMultipliers ?? new List<float> { 1f };
             DefaultGameSpeedOnDayStart = defaultGameSpeedOnDayStart;
             UpgradeRollCount = upgradeRollCount;
+            RerollCount = rerollCount;
             DraftCardCount = draftCardCount;
             UnlockCharges = unlockCharges;
             UnitPoolRules = unitPoolRules;
@@ -55,6 +57,7 @@ namespace MochiPark.Runtime.Level
         public List<float> AllowedGameSpeedMultipliers { get; }
         public float DefaultGameSpeedOnDayStart { get; }
         public int UpgradeRollCount { get; }
+        public int RerollCount { get; }
         public int DraftCardCount { get; }
         public int UnlockCharges { get; }
         public UnitPoolRules UnitPoolRules { get; }

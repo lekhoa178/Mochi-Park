@@ -87,6 +87,7 @@ namespace MochiPark.Runtime.Data
         [SerializeField] private OptionalInt baseVisitorCountOverride;
         [SerializeField] private OptionalFloat spawnDelayOverride;
         [SerializeField] private OptionalInt upgradeRollCountOverride;
+        [SerializeField] private OptionalInt rerollCountOverride;
         [SerializeField] private OptionalInt draftCardCountOverride;
         [SerializeField] private UnitPoolRules unitPoolRulesOverride = new UnitPoolRules();
         [SerializeField] private OptionalFloat visitorSpeedOverride;
@@ -102,6 +103,7 @@ namespace MochiPark.Runtime.Data
         public OptionalInt BaseVisitorCountOverride => baseVisitorCountOverride;
         public OptionalFloat SpawnDelayOverride => spawnDelayOverride;
         public OptionalInt UpgradeRollCountOverride => upgradeRollCountOverride;
+        public OptionalInt RerollCountOverride => rerollCountOverride;
         public OptionalInt DraftCardCountOverride => draftCardCountOverride;
         public UnitPoolRules UnitPoolRulesOverride => unitPoolRulesOverride;
         public OptionalFloat VisitorSpeedOverride => visitorSpeedOverride;

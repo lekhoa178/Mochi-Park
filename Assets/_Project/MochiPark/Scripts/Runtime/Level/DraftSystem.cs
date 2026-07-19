@@ -36,7 +36,7 @@ namespace MochiPark.Runtime.Level
             }
 
             uint seed = ComputeSeed(state.RunSeed, config.LevelId, config.DayIndexInLevel, 0, 0);
-            state.Draft.PrepareDay(config.UpgradeRollCount, seed);
+            state.Draft.PrepareDay(config.UpgradeRollCount, config.RerollCount, seed);
 
             if (state.Draft.IsCompletedForDay)
             {
@@ -53,7 +53,8 @@ namespace MochiPark.Runtime.Level
                 state.Phase != GamePhase.Placement ||
                 state.Draft.IsCompletedForDay ||
                 state.Draft.HasPendingPick ||
-                state.Draft.ActiveOffer == null)
+                state.Draft.ActiveOffer == null ||
+                !state.Draft.TryConsumeReroll())
             {
                 return false;
             }

@@ -57,6 +57,9 @@ MonoBehaviour:
       upgradeRollCountOverride:
         hasValue: 1
         value: 3
+      rerollCountOverride:
+        hasValue: 1
+        value: 99
       draftCardCountOverride:
         hasValue: 1
         value: 3
@@ -122,6 +125,9 @@ MonoBehaviour:
       upgradeRollCountOverride:
         hasValue: 1
         value: 3
+      rerollCountOverride:
+        hasValue: 1
+        value: 99
       draftCardCountOverride:
         hasValue: 1
         value: 3
@@ -187,6 +193,9 @@ MonoBehaviour:
       upgradeRollCountOverride:
         hasValue: 1
         value: 3
+      rerollCountOverride:
+        hasValue: 1
+        value: 99
       draftCardCountOverride:
         hasValue: 1
         value: 3

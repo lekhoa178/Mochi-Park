@@ -202,7 +202,7 @@ namespace MochiPark.Runtime.Views
                 keyboard != null &&
                 keyboard.jKey.wasPressedThisFrame)
             {
-                director.TryRerollUpgrade();
+                RequestDraftReroll();
                 return;
             }
 
@@ -307,6 +307,7 @@ namespace MochiPark.Runtime.Views
                 draftView.DraftCardDragged -= OnDraftCardDragged;
                 draftView.DraftCardDragEnded -= OnDraftCardDragEnded;
                 draftView.SkipRequested -= SkipDraftForDay;
+                draftView.RerollRequested -= RequestDraftReroll;
             }
 
             draftView?.Unbind();
@@ -511,6 +512,14 @@ namespace MochiPark.Runtime.Views
             director.SkipDraftForDay();
             draftView?.Close();
             HideUnitDetailPanel();
+        }
+
+        private void RequestDraftReroll()
+        {
+            if (CanEditBoard() && director != null)
+            {
+                director.TryRerollUpgrade();
+            }
         }
 
         private void ConfirmSelectedUnitEdit()
@@ -4402,6 +4411,8 @@ namespace MochiPark.Runtime.Views
             draftView.DraftCardDragEnded += OnDraftCardDragEnded;
             draftView.SkipRequested -= SkipDraftForDay;
             draftView.SkipRequested += SkipDraftForDay;
+            draftView.RerollRequested -= RequestDraftReroll;
+            draftView.RerollRequested += RequestDraftReroll;
         }
 
         private void RefreshHudShovelState()

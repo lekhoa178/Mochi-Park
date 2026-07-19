@@ -35,6 +35,7 @@ namespace MochiPark.Runtime.Data
         [SerializeField] private List<float> defaultAllowedGameSpeeds = new List<float> { 1f, 2f, 3f };
         [SerializeField] private float defaultGameSpeedOnDayStart = 1f;
         [SerializeField] private int defaultUpgradeRollCount = 1;
+        [SerializeField] private int defaultRerollCount;
         [SerializeField] private int defaultDraftCardCount = 3;
         [SerializeField] private bool defaultAllowPlacementBeforeRun = true;
         [SerializeField] private bool defaultAllowPlacementDuringRun;
@@ -60,6 +61,7 @@ namespace MochiPark.Runtime.Data
         public IReadOnlyList<float> DefaultAllowedGameSpeeds => defaultAllowedGameSpeeds;
         public float DefaultGameSpeedOnDayStart => Mathf.Max(1f, defaultGameSpeedOnDayStart);
         public int DefaultUpgradeRollCount => Mathf.Max(0, defaultUpgradeRollCount);
+        public int DefaultRerollCount => Mathf.Max(0, defaultRerollCount);
         public int DefaultDraftCardCount => Mathf.Max(0, defaultDraftCardCount);
         public bool DefaultAllowPlacementBeforeRun => defaultAllowPlacementBeforeRun;
         public bool DefaultAllowPlacementDuringRun => defaultAllowPlacementDuringRun;

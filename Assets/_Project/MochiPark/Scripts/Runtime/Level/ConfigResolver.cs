@@ -31,6 +31,7 @@ namespace MochiPark.Runtime.Level
             float spawnDelay = global.DefaultSpawnDelay;
             float visitorSpeed = global.DefaultVisitorSpeed;
             int upgradeRollCount = global.DefaultUpgradeRollCount;
+            int rerollCount = global.DefaultRerollCount;
             int draftCardCount = global.DefaultDraftCardCount;
             int unlockCharges = 0;
             bool allowPlacementBeforeRun = global.DefaultAllowPlacementBeforeRun;
@@ -66,6 +67,7 @@ namespace MochiPark.Runtime.Level
                 spawnDelay = day.SpawnDelayOverride.Resolve(spawnDelay);
                 visitorSpeed = day.VisitorSpeedOverride.Resolve(visitorSpeed);
                 upgradeRollCount = day.UpgradeRollCountOverride.Resolve(upgradeRollCount);
+                rerollCount = day.RerollCountOverride.Resolve(rerollCount);
                 draftCardCount = day.DraftCardCountOverride.Resolve(draftCardCount);
                 speedControlEnabled = day.SpeedControlEnabledOverride.Resolve(speedControlEnabled);
                 allowedMultipliers = day.AllowedGameSpeedMultipliersOverride.Resolve(allowedMultipliers);
@@ -95,6 +97,7 @@ namespace MochiPark.Runtime.Level
                 allowedMultipliers,
                 defaultSpeed,
                 Mathf.Max(0, upgradeRollCount),
+                Mathf.Max(0, rerollCount),
                 Mathf.Max(0, draftCardCount),
                 Mathf.Max(0, unlockCharges),
                 poolRules,

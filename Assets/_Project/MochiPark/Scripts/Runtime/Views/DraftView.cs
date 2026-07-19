@@ -18,6 +18,9 @@ namespace MochiPark.Runtime.Views
         private const string DraftRemainTextName = "Text_DraftRemain";
         private const string DraftItemsContainerName = "Layout_DraftItems";
         private const string SkipButtonName = "Button_Skip";
+        private const string RerollButtonName = "Button_Reroll";
+        private const string RerollCountTextName = "Text_RerollCount";
+        private const string CollapseButtonName = "Button_Collapse";
         private const string UnitNameTextName = "Text_UnitName";
         private const string UnitIconImageName = "Image_UnitIcon";
         private const string BackgroundImageName = "Image_BG";
@@ -27,6 +30,10 @@ namespace MochiPark.Runtime.Views
         [SerializeField] private RectTransform draftPanel;
         [SerializeField] private TextMeshProUGUI draftRemainText;
         [SerializeField] private Button skipButton;
+        [SerializeField] private Button rerollButton;
+        [SerializeField] private TextMeshProUGUI rerollCountText;
+        [SerializeField] private Button collapseButton;
+        [SerializeField] private RectTransform collapseArrowIcon;
         [SerializeField] private RectTransform draftItemsContainer;
         [SerializeField] private GameObject draftItemPrefab;
 
@@ -50,11 +57,14 @@ namespace MochiPark.Runtime.Views
         private CanvasGroup draftCanvasGroup;
         private Coroutine tweenCoroutine;
         private Vector2 shownAnchoredPosition;
+        private Quaternion expandedArrowRotation = Quaternion.identity;
         private int selectedCardIndex = -1;
         private int draggedCardIndex = -1;
         private int draggedCardPointerId;
         private bool hasCachedShownPosition;
+        private bool hasCachedExpandedArrowRotation;
         private bool isOpen;
+        private bool isCollapsed;
         private bool isSuppressed;
         private bool hasDraftCardDrag;
         private bool hasStartedDraftCardPlacement;
@@ -65,6 +75,7 @@ namespace MochiPark.Runtime.Views
         public event Action<int, Vector2, int> DraftCardDragged;
         public event Action<int, Vector2, int> DraftCardDragEnded;
         public event Action SkipRequested;
+        public event Action RerollRequested;
 
         public void Bind(LevelDirector boundDirector, EventBus boundEventBus)
         {
@@ -95,6 +106,7 @@ namespace MochiPark.Runtime.Views
             DraftCardDragged = null;
             DraftCardDragEnded = null;
             SkipRequested = null;
+            RerollRequested = null;
             ClearDraftCardDrag();
             ClearDraftCardSelection();
         }
@@ -129,6 +141,7 @@ namespace MochiPark.Runtime.Views
                 return;
             }
 
+            isCollapsed = false;
             TweenTo(GetHiddenPosition(), false);
         }
 
@@ -164,6 +177,18 @@ namespace MochiPark.Runtime.Views
                 skipButton.onClick.RemoveListener(OnSkipClicked);
                 skipButton.onClick.AddListener(OnSkipClicked);
             }
+
+            if (rerollButton != null)
+            {
+                rerollButton.onClick.RemoveListener(OnRerollClicked);
+                rerollButton.onClick.AddListener(OnRerollClicked);
+            }
+
+            if (collapseButton != null)
+            {
+                collapseButton.onClick.RemoveListener(OnCollapseClicked);
+                collapseButton.onClick.AddListener(OnCollapseClicked);
+            }
         }
 
         private void OnDisable()
@@ -171,6 +196,16 @@ namespace MochiPark.Runtime.Views
             if (skipButton != null)
             {
                 skipButton.onClick.RemoveListener(OnSkipClicked);
+            }
+
+            if (rerollButton != null)
+            {
+                rerollButton.onClick.RemoveListener(OnRerollClicked);
+            }
+
+            if (collapseButton != null)
+            {
+                collapseButton.onClick.RemoveListener(OnCollapseClicked);
             }
         }
 
@@ -223,6 +258,7 @@ namespace MochiPark.Runtime.Views
             }
 
             RefreshDraftRemain();
+            RefreshRerollRemain();
             if (evt.State.Draft == null || evt.State.Draft.TotalRollsToday <= 0)
             {
                 SetHiddenImmediate();
@@ -273,6 +309,7 @@ namespace MochiPark.Runtime.Views
             }
 
             RefreshDraftRemain();
+            RefreshRerollRemain();
             if (state.Draft.HasPendingPick ||
                 state.Draft.IsCompletedForDay ||
                 state.Draft.ActiveOffer == null ||
@@ -290,6 +327,7 @@ namespace MochiPark.Runtime.Views
         {
             ClearDraftCardSelection();
             RefreshDraftRemain();
+            RefreshRerollRemain();
             EnsureItemPool(offer.UnitTypeIds.Count);
 
             for (int i = 0; i < itemBindings.Count; i++)
@@ -318,6 +356,28 @@ namespace MochiPark.Runtime.Views
             if (draftRemainText != null)
             {
                 draftRemainText.SetText("{0}", GetRemainingDraftCount());
+            }
+        }
+
+        private void RefreshRerollRemain()
+        {
+            int remainingRerolls = state != null && state.Draft != null
+                ? state.Draft.RemainingRerolls
+                : 0;
+
+            if (rerollCountText != null)
+            {
+                rerollCountText.SetText("{0}", remainingRerolls);
+            }
+
+            if (rerollButton != null)
+            {
+                rerollButton.interactable = remainingRerolls > 0 &&
+                    state != null &&
+                    state.Draft != null &&
+                    !state.Draft.IsCompletedForDay &&
+                    !state.Draft.HasPendingPick &&
+                    state.Draft.ActiveOffer != null;
             }
         }
 
@@ -367,12 +427,18 @@ namespace MochiPark.Runtime.Views
             }
 
             CacheShownPosition();
-            if (!isOpen && tweenCoroutine == null)
+            if (isOpen)
+            {
+                return;
+            }
+
+            isCollapsed = false;
+            if (tweenCoroutine == null)
             {
                 draftPanel.anchoredPosition = GetHiddenPosition();
             }
 
-            TweenTo(shownAnchoredPosition, true);
+            TweenTo(shownAnchoredPosition, true, expandedArrowRotation);
         }
 
         private void SetHiddenImmediate()
@@ -391,11 +457,18 @@ namespace MochiPark.Runtime.Views
 
             CacheShownPosition();
             draftPanel.anchoredPosition = GetHiddenPosition();
+            SetArrowRotationImmediate(expandedArrowRotation);
             SetInteractable(false);
             isOpen = false;
+            isCollapsed = false;
         }
 
         private void TweenTo(Vector2 targetPosition, bool openAtEnd)
+        {
+            TweenTo(targetPosition, openAtEnd, expandedArrowRotation);
+        }
+
+        private void TweenTo(Vector2 targetPosition, bool openAtEnd, Quaternion targetArrowRotation)
         {
             if (draftPanel == null)
             {
@@ -409,27 +482,42 @@ namespace MochiPark.Runtime.Views
 
             isOpen = openAtEnd;
             SetInteractable(openAtEnd);
-            tweenCoroutine = StartCoroutine(TweenPanelRoutine(targetPosition, openAtEnd));
+            tweenCoroutine = StartCoroutine(TweenPanelRoutine(targetPosition, targetArrowRotation, openAtEnd));
         }
 
-        private IEnumerator TweenPanelRoutine(Vector2 targetPosition, bool openAtEnd)
+        private IEnumerator TweenPanelRoutine(
+            Vector2 targetPosition,
+            Quaternion targetArrowRotation,
+            bool openAtEnd)
         {
             Vector2 startPosition = draftPanel.anchoredPosition;
+            Quaternion startArrowRotation = collapseArrowIcon != null
+                ? collapseArrowIcon.localRotation
+                : Quaternion.identity;
             float duration = Mathf.Max(0.01f, tweenDuration);
             float elapsed = 0f;
+            bool movesUp = targetPosition.y >= startPosition.y;
 
             while (elapsed < duration)
             {
                 elapsed += Time.unscaledDeltaTime;
                 float t = Mathf.Clamp01(elapsed / duration);
-                float eased = openAtEnd
+                float eased = movesUp
                     ? 1f - Mathf.Pow(1f - t, 3f)
                     : t * t;
                 draftPanel.anchoredPosition = Vector2.LerpUnclamped(startPosition, targetPosition, eased);
+                if (collapseArrowIcon != null)
+                {
+                    collapseArrowIcon.localRotation = Quaternion.LerpUnclamped(
+                        startArrowRotation,
+                        targetArrowRotation,
+                        eased);
+                }
                 yield return null;
             }
 
             draftPanel.anchoredPosition = targetPosition;
+            SetArrowRotationImmediate(targetArrowRotation);
             isOpen = openAtEnd;
             SetInteractable(openAtEnd);
             tweenCoroutine = null;
@@ -448,6 +536,39 @@ namespace MochiPark.Runtime.Views
             float panelHeight = Mathf.Max(draftPanel.rect.height, draftPanel.sizeDelta.y);
             float hiddenDistance = Mathf.Max(1f, canvasHeight + panelHeight + offscreenPadding);
             return shownAnchoredPosition - Vector2.up * hiddenDistance;
+        }
+
+        private Vector2 GetCollapsedPosition()
+        {
+            RectTransform collapseButtonRect = collapseButton != null
+                ? collapseButton.transform as RectTransform
+                : null;
+            RectTransform parentRect = draftPanel != null ? draftPanel.parent as RectTransform : null;
+            if (collapseButtonRect == null || parentRect == null)
+            {
+                float fallbackDistance = Mathf.Max(
+                    0f,
+                    draftPanel.rect.height - (collapseButtonRect != null ? collapseButtonRect.rect.height : 0f));
+                return shownAnchoredPosition - Vector2.up * fallbackDistance;
+            }
+
+            float buttonAnchorY = Mathf.Lerp(
+                draftPanel.rect.yMin,
+                draftPanel.rect.yMax,
+                (collapseButtonRect.anchorMin.y + collapseButtonRect.anchorMax.y) * 0.5f);
+            float buttonBottomY = buttonAnchorY +
+                collapseButtonRect.anchoredPosition.y +
+                collapseButtonRect.rect.yMin;
+            float panelAnchorY = Mathf.Lerp(
+                parentRect.rect.yMin,
+                parentRect.rect.yMax,
+                (draftPanel.anchorMin.y + draftPanel.anchorMax.y) * 0.5f);
+
+            Vector2 collapsedPosition = shownAnchoredPosition;
+            collapsedPosition.y = Mathf.Min(
+                shownAnchoredPosition.y,
+                parentRect.rect.yMin - panelAnchorY - buttonBottomY);
+            return collapsedPosition;
         }
 
         private void SetInteractable(bool interactable)
@@ -471,6 +592,29 @@ namespace MochiPark.Runtime.Views
         private void OnSkipClicked()
         {
             SkipRequested?.Invoke();
+        }
+
+        private void OnRerollClicked()
+        {
+            if (rerollButton != null && rerollButton.interactable)
+            {
+                RerollRequested?.Invoke();
+            }
+        }
+
+        private void OnCollapseClicked()
+        {
+            if (!isOpen || draftPanel == null)
+            {
+                return;
+            }
+
+            isCollapsed = !isCollapsed;
+            Vector2 targetPosition = isCollapsed ? GetCollapsedPosition() : shownAnchoredPosition;
+            Quaternion targetArrowRotation = isCollapsed
+                ? expandedArrowRotation * Quaternion.Euler(0f, 0f, 180f)
+                : expandedArrowRotation;
+            TweenTo(targetPosition, true, targetArrowRotation);
         }
 
         private void OnDraftItemClicked(int cardIndex)
@@ -635,6 +779,26 @@ namespace MochiPark.Runtime.Views
                 skipButton = FindDeep<Button>(transform, SkipButtonName);
             }
 
+            if (rerollButton == null)
+            {
+                rerollButton = FindDeep<Button>(transform, RerollButtonName);
+            }
+
+            if (rerollCountText == null)
+            {
+                rerollCountText = FindDeep<TextMeshProUGUI>(transform, RerollCountTextName);
+            }
+
+            if (collapseButton == null)
+            {
+                collapseButton = FindDeep<Button>(transform, CollapseButtonName);
+            }
+
+            if (collapseArrowIcon == null && collapseButton != null && collapseButton.transform.childCount > 0)
+            {
+                collapseArrowIcon = collapseButton.transform.GetChild(0) as RectTransform;
+            }
+
             if (draftCanvasGroup == null && draftPanel != null)
             {
                 draftCanvasGroup = draftPanel.GetComponent<CanvasGroup>();
@@ -654,6 +818,20 @@ namespace MochiPark.Runtime.Views
 
             shownAnchoredPosition = draftPanel.anchoredPosition;
             hasCachedShownPosition = true;
+
+            if (!hasCachedExpandedArrowRotation && collapseArrowIcon != null)
+            {
+                expandedArrowRotation = collapseArrowIcon.localRotation;
+                hasCachedExpandedArrowRotation = true;
+            }
+        }
+
+        private void SetArrowRotationImmediate(Quaternion rotation)
+        {
+            if (collapseArrowIcon != null)
+            {
+                collapseArrowIcon.localRotation = rotation;
+            }
         }
 
         private bool IsCurrentState(RuntimeLevelState candidate)

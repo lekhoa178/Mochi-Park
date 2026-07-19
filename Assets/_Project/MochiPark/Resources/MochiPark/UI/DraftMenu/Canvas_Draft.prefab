@@ -680,6 +680,10 @@ MonoBehaviour:
   draftPanel: {fileID: 8294356221334951062}
   draftRemainText: {fileID: 2474962435431890787}
   skipButton: {fileID: 7027331910085587832}
+  rerollButton: {fileID: 7812871422446832169}
+  rerollCountText: {fileID: 7785750625054825520}
+  collapseButton: {fileID: 346355728626218727}
+  collapseArrowIcon: {fileID: 237214452990543625}
   draftItemsContainer: {fileID: 8758540764665322457}
   draftItemPrefab: {fileID: 6300477965282464719, guid: 936b4fb0531f8e4488128e22f63491df, type: 3}
   blueRarityBackground: {fileID: 21300000, guid: 8536a0cb59be91541a01feece230ff6c, type: 3}
