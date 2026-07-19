@@ -45,7 +45,8 @@ namespace MochiPark.Runtime.Views
             GameObject prefab,
             float activeDuration,
             float destroyLingerDuration = DefaultDestroyLingerDuration,
-            bool centerOnCamera = true)
+            bool centerOnCamera = true,
+            bool useUnscaledTime = true)
         {
             GameObject instance = Spawn(prefab, centerOnCamera);
             if (instance == null)
@@ -56,7 +57,8 @@ namespace MochiPark.Runtime.Views
             Coroutine coroutine = StartCoroutine(StopAndDestroyRoutine(
                 instance,
                 Mathf.Max(0f, activeDuration),
-                Mathf.Max(0f, destroyLingerDuration)));
+                Mathf.Max(0f, destroyLingerDuration),
+                useUnscaledTime));
             lifetimeCoroutines.Add(coroutine);
             return instance;
         }
@@ -232,19 +234,34 @@ namespace MochiPark.Runtime.Views
             ownsStackEntry = false;
         }
 
-        private IEnumerator StopAndDestroyRoutine(GameObject instance, float activeDuration, float destroyLingerDuration)
+        private static IEnumerator WaitForDuration(float duration, bool useUnscaledTime)
         {
-            if (activeDuration > 0f)
+            if (duration <= 0f)
             {
-                yield return new WaitForSecondsRealtime(activeDuration);
+                yield break;
             }
+
+            if (useUnscaledTime)
+            {
+                yield return new WaitForSecondsRealtime(duration);
+            }
+            else
+            {
+                yield return new WaitForSeconds(duration);
+            }
+        }
+
+        private IEnumerator StopAndDestroyRoutine(
+            GameObject instance,
+            float activeDuration,
+            float destroyLingerDuration,
+            bool useUnscaledTime)
+        {
+            yield return WaitForDuration(activeDuration, useUnscaledTime);
 
             StopParticles(instance);
 
-            if (destroyLingerDuration > 0f)
-            {
-                yield return new WaitForSecondsRealtime(destroyLingerDuration);
-            }
+            yield return WaitForDuration(destroyLingerDuration, useUnscaledTime);
 
             if (instance != null)
             {

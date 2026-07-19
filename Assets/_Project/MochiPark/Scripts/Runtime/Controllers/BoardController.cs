@@ -22,7 +22,7 @@ namespace MochiPark.Runtime.Views
         private const float BuildableSpriteSelectionFadeDuration = 0.18f;
         private const float UnitPickRayDistance = 1000f;
         private const float DragStartScreenDistance = 8f;
-        private const float DefaultUnitDragSmoothTime = 0.02f;
+        private const float DefaultUnitDragSmoothTime = 0.04f;
         private const float DefaultUnitReleaseBounceMagnitude = 0.25f;
         private const float DefaultUnitReleaseBounceFrequency = 4.5f;
         private const float DefaultUnitReleaseBounceMagnitudeDecreaseRatio = 0.48f;
@@ -33,7 +33,7 @@ namespace MochiPark.Runtime.Views
         private const float VisitorReachedTileCenterDistance = 0.01f;
         private const float VisitorExitFadeDuration = 0.4f;
         private const float MochiUnitTriggeredVfxLifetime = 8f;
-        private const float CountdownIntroDuration = 5f;
+        private const float CountdownIntroDuration = 4f;
         private const float FrenzyIntroVfxDuration = 4f;
         private const float ResultVfxDuration = 5f;
         private const float OverlayVfxDestroyLingerDuration = 10f;
@@ -2613,7 +2613,7 @@ namespace MochiPark.Runtime.Views
             }
 
             PlayCountdownVfx();
-            yield return new WaitForSecondsRealtime(CountdownIntroDuration);
+            yield return new WaitForSeconds(CountdownIntroDuration);
 
             if (cameraController != null)
             {
@@ -2657,7 +2657,8 @@ namespace MochiPark.Runtime.Views
                 prefab,
                 CountdownIntroDuration,
                 OverlayVfxDestroyLingerDuration,
-                true);
+                true,
+                false);
         }
 
         private bool TryGetUnitAtScreenPosition(Vector2 screenPosition, out GameObject unitView)
