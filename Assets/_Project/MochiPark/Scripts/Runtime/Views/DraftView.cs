@@ -39,6 +39,9 @@ namespace MochiPark.Runtime.Views
         [SerializeField] private float tweenDuration = 0.28f;
         [SerializeField] private float offscreenPadding = 80f;
 
+        [Header("Selection")]
+        [SerializeField] private Color selectedHighlightColor = Color.yellow;
+
         private readonly List<DraftItemBinding> itemBindings = new List<DraftItemBinding>();
 
         private LevelDirector director;
@@ -113,6 +116,7 @@ namespace MochiPark.Runtime.Views
             }
 
             selectedCardIndex = cardIndex;
+            RefreshCardSelectionVisuals();
             DraftCardSelected?.Invoke(cardIndex);
         }
 
@@ -550,6 +554,15 @@ namespace MochiPark.Runtime.Views
         private void ClearDraftCardSelection()
         {
             selectedCardIndex = -1;
+            RefreshCardSelectionVisuals();
+        }
+
+        private void RefreshCardSelectionVisuals()
+        {
+            for (int i = 0; i < itemBindings.Count; i++)
+            {
+                itemBindings[i].SetSelected(i == selectedCardIndex, selectedHighlightColor);
+            }
         }
 
         private void ClearDraftCardDrag()
@@ -737,6 +750,14 @@ namespace MochiPark.Runtime.Views
                 }
             }
 
+            public void SetSelected(bool selected, Color selectedColor)
+            {
+                if (hoverRelay != null)
+                {
+                    hoverRelay.SetSelected(selected, selectedColor);
+                }
+            }
+
             public void SetUnit(UnitDefinitionSO unitDefinition, string fallbackUnitTypeId, Sprite rarityBackground)
             {
                 string displayName = unitDefinition != null && !string.IsNullOrWhiteSpace(unitDefinition.DisplayName)
@@ -798,11 +819,28 @@ namespace MochiPark.Runtime.Views
         private Action<int, Vector2, int> dragStarted;
         private Action<int, Vector2, int> dragged;
         private Action<int, Vector2, int> dragEnded;
+        private Color hoverHighlightColor = Color.white;
+        private Color selectedHighlightColor = Color.yellow;
+        private bool isHovered;
+        private bool isFocused;
+        private bool isSelected;
 
         public void SetHighlight(Image highlight)
         {
             highlightImage = highlight;
-            SetHighlighted(false);
+            if (highlightImage != null)
+            {
+                hoverHighlightColor = highlightImage.color;
+            }
+
+            RefreshHighlight();
+        }
+
+        public void SetSelected(bool selected, Color selectedColor)
+        {
+            isSelected = selected;
+            selectedHighlightColor = selectedColor;
+            RefreshHighlight();
         }
 
         public void BindDrag(
@@ -819,22 +857,26 @@ namespace MochiPark.Runtime.Views
 
         public void OnPointerEnter(PointerEventData eventData)
         {
-            SetHighlighted(true);
+            isHovered = true;
+            RefreshHighlight();
         }
 
         public void OnPointerExit(PointerEventData eventData)
         {
-            SetHighlighted(false);
+            isHovered = false;
+            RefreshHighlight();
         }
 
         public void OnSelect(BaseEventData eventData)
         {
-            SetHighlighted(true);
+            isFocused = true;
+            RefreshHighlight();
         }
 
         public void OnDeselect(BaseEventData eventData)
         {
-            SetHighlighted(false);
+            isFocused = false;
+            RefreshHighlight();
         }
 
         public void OnBeginDrag(PointerEventData eventData)
@@ -850,7 +892,8 @@ namespace MochiPark.Runtime.Views
         public void OnEndDrag(PointerEventData eventData)
         {
             DispatchDrag(eventData, dragEnded);
-            SetHighlighted(false);
+            isHovered = false;
+            RefreshHighlight();
         }
 
         private void DispatchDrag(PointerEventData eventData, Action<int, Vector2, int> callback)
@@ -861,11 +904,12 @@ namespace MochiPark.Runtime.Views
             }
         }
 
-        private void SetHighlighted(bool highlighted)
+        private void RefreshHighlight()
         {
             if (highlightImage != null)
             {
-                highlightImage.gameObject.SetActive(highlighted);
+                highlightImage.color = isSelected ? selectedHighlightColor : hoverHighlightColor;
+                highlightImage.gameObject.SetActive(isSelected || isHovered || isFocused);
             }
         }
     }
