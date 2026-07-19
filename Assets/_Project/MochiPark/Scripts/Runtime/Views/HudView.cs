@@ -850,7 +850,6 @@ namespace MochiPark.Runtime.Views
             int oneStar = thresholds != null ? thresholds.OneStar : 0;
             int twoStar = thresholds != null ? thresholds.TwoStar : 0;
             int threeStar = thresholds != null ? thresholds.ThreeStar : 0;
-            int maxProgress = Mathf.Max(1, threeStar);
             int starCount = thresholds != null ? thresholds.CalculateStars(totalJoy) : 0;
 
             if (joyText != null)
@@ -862,7 +861,7 @@ namespace MochiPark.Runtime.Views
             SetTargetText(oneStarTargetText, oneStar);
             SetTargetText(twoStarTargetText, twoStar);
             SetTargetText(threeStarTargetText, threeStar);
-            targetStarProgress = Mathf.Clamp01(totalJoy / (float)maxProgress);
+            targetStarProgress = GetStarProgress(totalJoy, oneStar, twoStar, threeStar);
 
             if (displayedStarCount < 0)
             {
@@ -888,6 +887,67 @@ namespace MochiPark.Runtime.Views
             }
 
             displayedStarCount = starCount;
+        }
+
+        private float GetStarProgress(int totalJoy, int oneStar, int twoStar, int threeStar)
+        {
+            int maxProgress = Mathf.Max(1, threeStar);
+            float oneStarPosition = GetStarSliderPosition(0, oneStar / (float)maxProgress);
+            float twoStarPosition = GetStarSliderPosition(1, twoStar / (float)maxProgress);
+            float threeStarPosition = GetStarSliderPosition(2, threeStar / (float)maxProgress);
+
+            if (totalJoy < oneStar)
+            {
+                return Mathf.Lerp(0f, oneStarPosition, Mathf.InverseLerp(0, oneStar, totalJoy));
+            }
+
+            if (totalJoy < twoStar)
+            {
+                return Mathf.Lerp(oneStarPosition, twoStarPosition, Mathf.InverseLerp(oneStar, twoStar, totalJoy));
+            }
+
+            if (totalJoy < threeStar)
+            {
+                return Mathf.Lerp(twoStarPosition, threeStarPosition, Mathf.InverseLerp(twoStar, threeStar, totalJoy));
+            }
+
+            return threeStarPosition;
+        }
+
+        private float GetStarSliderPosition(int starIndex, float fallback)
+        {
+            RectTransform starTransform = GetArrayItem(starTransforms, starIndex);
+            RectTransform fillRect = starProgressSlider != null ? starProgressSlider.fillRect : null;
+            if (starTransform == null || fillRect == null)
+            {
+                return Mathf.Clamp01(fallback);
+            }
+
+            Image fillImage = fillRect.GetComponent<Image>();
+            RectTransform progressRect = fillImage != null && fillImage.type == Image.Type.Filled
+                ? fillRect
+                : fillRect.parent as RectTransform;
+            if (progressRect == null)
+            {
+                return Mathf.Clamp01(fallback);
+            }
+
+            Vector3 starCenter = progressRect.InverseTransformPoint(
+                starTransform.TransformPoint(starTransform.rect.center));
+            Rect progressBounds = progressRect.rect;
+            switch (starProgressSlider.direction)
+            {
+                case Slider.Direction.LeftToRight:
+                    return Mathf.InverseLerp(progressBounds.xMin, progressBounds.xMax, starCenter.x);
+                case Slider.Direction.RightToLeft:
+                    return Mathf.InverseLerp(progressBounds.xMax, progressBounds.xMin, starCenter.x);
+                case Slider.Direction.BottomToTop:
+                    return Mathf.InverseLerp(progressBounds.yMin, progressBounds.yMax, starCenter.y);
+                case Slider.Direction.TopToBottom:
+                    return Mathf.InverseLerp(progressBounds.yMax, progressBounds.yMin, starCenter.y);
+                default:
+                    return Mathf.Clamp01(fallback);
+            }
         }
 
         private static void SetTargetText(TextMeshProUGUI text, int amount)

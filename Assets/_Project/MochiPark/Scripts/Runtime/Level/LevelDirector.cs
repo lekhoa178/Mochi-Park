@@ -72,6 +72,8 @@ namespace MochiPark.Runtime.Level
                 return;
             }
 
+            bool isFirstDay = State.CurrentDayConfig == null;
+            float requestedGameSpeed = State.GameSpeed.RequestedMultiplier;
             ResolvedDayConfig config = ConfigResolver.Resolve(catalog, State.Definition, stageIndex, dayIndex);
             State.CurrentStageIndex = config.StageIndex;
             State.CurrentDayIndex = config.DayIndexInLevel;
@@ -84,7 +86,13 @@ namespace MochiPark.Runtime.Level
             State.Scoring.ResetDay();
             State.Phase = GamePhase.Placement;
 
-            State.GameSpeed.SetRequested(config.DefaultGameSpeedOnDayStart);
+            float dayGameSpeed = isFirstDay
+                ? config.DefaultGameSpeedOnDayStart
+                : requestedGameSpeed;
+            float selectedGameSpeed = config.SpeedControlEnabled
+                ? ConfigResolver.ClampMultiplier(dayGameSpeed, config.AllowedGameSpeedMultipliers)
+                : 1f;
+            State.GameSpeed.SetRequested(selectedGameSpeed);
             State.GameSpeed.SetEffective(1f);
 
             unitTriggerSystem.PrepareDay();
