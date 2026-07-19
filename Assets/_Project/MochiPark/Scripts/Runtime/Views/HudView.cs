@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using MochiPark.Runtime.Core;
 using MochiPark.Runtime.Data;
 using MochiPark.Runtime.Level;
@@ -21,6 +22,8 @@ namespace MochiPark.Runtime.Views
         private const string UnitDetailDescriptionTextName = "Text_UnitDescription";
         private const string OpenParkButtonName = "Button_OpenPark";
         private const string ExitButtonName = "Button_Exit";
+        private const string SpeedButtonName = "Button_SpeedUp";
+        private const string SpeedTextName = "Text_Speed";
         private const string LeaderboardLayoutName = "Layout_Units";
         private const string LeaderboardResourcePath = "MochiPark/UI/HUD/UnitLeaderboard";
         private const int MaxLeaderboardRows = 5;
@@ -40,12 +43,16 @@ namespace MochiPark.Runtime.Views
         [Header("Actions")]
         [SerializeField] private Button openParkButton;
         [SerializeField] private Button exitButton;
+        [SerializeField] private Button speedButton;
+        [SerializeField] private TextMeshProUGUI speedText;
+        [SerializeField] private GameObject speedControlRoot;
 
         [Header("Button Cosmetics")]
         [SerializeField] private UIButtonCosmeticService buttonCosmeticService;
         [SerializeField] private RectTransform openParkButtonCosmeticTarget;
         [SerializeField] private RectTransform exitButtonCosmeticTarget;
         [SerializeField] private RectTransform shovelButtonCosmeticTarget;
+        [SerializeField] private RectTransform speedButtonCosmeticTarget;
 
         [Header("Stars")]
         [SerializeField] private RectTransform joyIconTransform;
@@ -307,6 +314,7 @@ namespace MochiPark.Runtime.Views
             RefreshOpenParkButton();
             RefreshLeaderboard();
             SetShovelState(0, false, false);
+            RefreshSpeed();
         }
 
         private void OnEnable()
@@ -331,6 +339,13 @@ namespace MochiPark.Runtime.Views
                 exitButton.onClick.RemoveListener(OnExitButtonClicked);
                 exitButton.onClick.AddListener(OnExitButtonClicked);
                 RegisterButtonCosmetic(exitButton, exitButtonCosmeticTarget);
+            }
+
+            if (speedButton != null)
+            {
+                speedButton.onClick.RemoveListener(OnSpeedButtonClicked);
+                speedButton.onClick.AddListener(OnSpeedButtonClicked);
+                RegisterButtonCosmetic(speedButton, speedButtonCosmeticTarget);
             }
         }
 
@@ -364,6 +379,16 @@ namespace MochiPark.Runtime.Views
             if (buttonCosmeticService != null && exitButton != null)
             {
                 buttonCosmeticService.Unregister(exitButton);
+            }
+
+            if (speedButton != null)
+            {
+                speedButton.onClick.RemoveListener(OnSpeedButtonClicked);
+            }
+
+            if (buttonCosmeticService != null && speedButton != null)
+            {
+                buttonCosmeticService.Unregister(speedButton);
             }
         }
 
@@ -405,6 +430,7 @@ namespace MochiPark.Runtime.Views
             eventBus.FrenzyStarted += OnFrenzyStarted;
             eventBus.FrenzyEnded += OnFrenzyEnded;
             eventBus.DayEnded += OnDayEnded;
+            eventBus.GameSpeedChanged += OnGameSpeedChanged;
         }
 
         private void Unsubscribe()
@@ -427,6 +453,7 @@ namespace MochiPark.Runtime.Views
             eventBus.FrenzyStarted -= OnFrenzyStarted;
             eventBus.FrenzyEnded -= OnFrenzyEnded;
             eventBus.DayEnded -= OnDayEnded;
+            eventBus.GameSpeedChanged -= OnGameSpeedChanged;
         }
 
         private void OnLevelStarted(LevelStartedEvent evt)
@@ -471,7 +498,13 @@ namespace MochiPark.Runtime.Views
                 RefreshRumble();
                 RefreshShovel(false);
                 RefreshOpenParkButton();
+                RefreshSpeed();
             }
+        }
+
+        private void OnGameSpeedChanged(GameSpeedChangedEvent evt)
+        {
+            RefreshSpeed();
         }
 
         private void OnBoardCellUnlocked(BoardCellUnlockedEvent evt)
@@ -556,6 +589,7 @@ namespace MochiPark.Runtime.Views
             RefreshShovel(false);
             RefreshOpenParkButton();
             RefreshLeaderboard();
+            RefreshSpeed();
         }
 
         private void RefreshAll(bool animateStars)
@@ -572,6 +606,33 @@ namespace MochiPark.Runtime.Views
             RefreshShovel(false);
             RefreshOpenParkButton();
             RefreshLeaderboard();
+            RefreshSpeed();
+        }
+
+        private void RefreshSpeed()
+        {
+            float multiplier = state != null && state.GameSpeed != null
+                ? state.GameSpeed.EffectiveMultiplier
+                : 1f;
+            if (speedText != null)
+            {
+                speedText.text = "x" + multiplier.ToString("0.##", CultureInfo.InvariantCulture);
+            }
+
+            ResolvedDayConfig config = state != null ? state.CurrentDayConfig : null;
+            bool shouldShow = config != null &&
+                              config.SpeedControlEnabled &&
+                              state.Phase == GamePhase.Running;
+            speedControlRoot?.SetActive(shouldShow);
+
+            if (speedButton == null)
+            {
+                return;
+            }
+
+            speedButton.interactable = shouldShow &&
+                                       config.AllowedGameSpeedMultipliers != null &&
+                                       config.AllowedGameSpeedMultipliers.Count > 1;
         }
 
         private void ApplyUnitDetail(UnitDefinitionSO unitDefinition)
@@ -1058,6 +1119,42 @@ namespace MochiPark.Runtime.Views
             ExitRequested?.Invoke();
         }
 
+        private void OnSpeedButtonClicked()
+        {
+            if (director == null || state == null || state.Phase != GamePhase.Running)
+            {
+                return;
+            }
+
+            ResolvedDayConfig config = state.CurrentDayConfig;
+            IReadOnlyList<float> allowedMultipliers = config != null
+                ? config.AllowedGameSpeedMultipliers
+                : null;
+            if (config == null ||
+                !config.SpeedControlEnabled ||
+                allowedMultipliers == null ||
+                allowedMultipliers.Count <= 1)
+            {
+                return;
+            }
+
+            float currentMultiplier = state.GameSpeed.RequestedMultiplier;
+            int currentIndex = 0;
+            float closestDistance = Mathf.Abs(allowedMultipliers[0] - currentMultiplier);
+            for (int i = 1; i < allowedMultipliers.Count; i++)
+            {
+                float distance = Mathf.Abs(allowedMultipliers[i] - currentMultiplier);
+                if (distance < closestDistance)
+                {
+                    currentIndex = i;
+                    closestDistance = distance;
+                }
+            }
+
+            int nextIndex = (currentIndex + 1) % allowedMultipliers.Count;
+            director.ChangeGameSpeed(allowedMultipliers[nextIndex]);
+        }
+
         private void UpdateFrenzyProgressTarget()
         {
             if (state == null || !state.Frenzy.IsActive)
@@ -1316,6 +1413,26 @@ namespace MochiPark.Runtime.Views
             if (exitButtonCosmeticTarget == null && exitButton != null)
             {
                 exitButtonCosmeticTarget = exitButton.transform as RectTransform;
+            }
+
+            if (speedButton == null)
+            {
+                speedButton = FindDeep<Button>(transform, SpeedButtonName);
+            }
+
+            if (speedText == null)
+            {
+                speedText = FindDeep<TextMeshProUGUI>(transform, SpeedTextName);
+            }
+
+            if (speedControlRoot == null && speedButton != null && speedButton.transform.parent != null)
+            {
+                speedControlRoot = speedButton.transform.parent.gameObject;
+            }
+
+            if (speedButtonCosmeticTarget == null && speedButton != null)
+            {
+                speedButtonCosmeticTarget = speedButton.transform as RectTransform;
             }
 
             if (shovelButtonCosmeticTarget == null && shovelButton != null)
