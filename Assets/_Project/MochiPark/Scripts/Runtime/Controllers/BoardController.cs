@@ -2455,9 +2455,16 @@ namespace MochiPark.Runtime.Views
 
             float centerOffsetX = (minX + maxX) * 0.5f;
             float centerOffsetY = (minY + maxY) * 0.5f;
-            return new Vector2Int(
+            Vector2Int anchorCell = new Vector2Int(
                 Mathf.FloorToInt(footprintCenterWorld.x / board.TileSizeXZ - centerOffsetX + 0.5f),
                 Mathf.FloorToInt(footprintCenterWorld.z / board.TileSizeXZ - centerOffsetY + 0.5f));
+
+            // Clamp the anchor using the rotated footprint bounds, rather than just
+            // clamping the pointer cell. This keeps every footprint cell on the board
+            // when dragging multi-tile units against an edge or corner.
+            return new Vector2Int(
+                Mathf.Clamp(anchorCell.x, -minX, board.Width - 1 - maxX),
+                Mathf.Clamp(anchorCell.y, -minY, board.Height - 1 - maxY));
         }
 
         private void ClearDragState()
