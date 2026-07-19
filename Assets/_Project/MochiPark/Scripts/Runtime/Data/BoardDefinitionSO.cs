@@ -341,6 +341,11 @@ namespace MochiPark.Runtime.Data
         [SerializeField] private BoardTilePrefabSet tilePrefabSet = new BoardTilePrefabSet();
         [SerializeField] private List<string> boardTags = new List<string>();
         [SerializeField] private string themeId = "default";
+        [Header("Unit Outline")]
+        [ColorUsage(true, true)]
+        [SerializeField] private Color selectedUnitOutlineColor = new Color(0.969f, 1f, 0f, 1f);
+        [ColorUsage(true, true)]
+        [SerializeField] private Color hoveredUnitOutlineColor = Color.white;
 
         private ParsedBoardGrid cachedGrid;
         private string cachedGridText;
@@ -357,6 +362,8 @@ namespace MochiPark.Runtime.Data
         public BoardTilePrefabSet TilePrefabSet => tilePrefabSet;
         public IReadOnlyList<string> BoardTags => boardTags;
         public string ThemeId => themeId;
+        public Color SelectedUnitOutlineColor => selectedUnitOutlineColor;
+        public Color HoveredUnitOutlineColor => hoveredUnitOutlineColor;
 
         public float ResolveTileHeight()
         {

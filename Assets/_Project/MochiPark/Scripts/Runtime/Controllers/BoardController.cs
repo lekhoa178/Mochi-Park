@@ -710,6 +710,9 @@ namespace MochiPark.Runtime.Views
 
         private void BuildBoard(RuntimeBoardState board)
         {
+            ScreenSpaceUnitOutlineRegistry.SetColors(
+                board.Definition.SelectedUnitOutlineColor,
+                board.Definition.HoveredUnitOutlineColor);
             StopCountdownIntro(true);
             StopFrenzyMomentVfx(true);
             ClearChildren(tileRoot);

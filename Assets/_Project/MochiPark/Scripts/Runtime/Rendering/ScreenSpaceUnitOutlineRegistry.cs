@@ -50,6 +50,17 @@ namespace MochiPark.Runtime.Rendering
 
         private static readonly Dictionary<GameObject, Entry> Entries = new Dictionary<GameObject, Entry>();
         private static readonly List<GameObject> StaleEntryRoots = new List<GameObject>();
+        private static Color selectedColor;
+        private static Color hoveredColor;
+
+        internal static Color SelectedColor => selectedColor;
+        internal static Color HoveredColor => hoveredColor;
+
+        public static void SetColors(Color selected, Color hovered)
+        {
+            selectedColor = selected;
+            hoveredColor = hovered;
+        }
 
         public static void SetHighlighted(GameObject root, ScreenSpaceUnitOutlineStyle style)
         {

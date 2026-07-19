@@ -14,8 +14,6 @@ namespace MochiPark.Runtime.Rendering
         [Serializable]
         public sealed class Settings
         {
-            [ColorUsage(true, true)] public Color selectedColor = new Color(0.969f, 1f, 0f, 1f);
-            [ColorUsage(true, true)] public Color hoveredColor = Color.white;
             [Range(0f, 16f)] public float thicknessPixels = 6f;
             [Range(0f, 4f)] public float smoothnessPixels = 1.25f;
             public bool showInSceneView;
@@ -67,8 +65,8 @@ namespace MochiPark.Runtime.Rendering
 
             outlinePass.Setup(
                 drawTargets,
-                settings.selectedColor,
-                settings.hoveredColor,
+                ScreenSpaceUnitOutlineRegistry.SelectedColor,
+                ScreenSpaceUnitOutlineRegistry.HoveredColor,
                 settings.thicknessPixels,
                 settings.smoothnessPixels,
                 cameraData.renderScale);
